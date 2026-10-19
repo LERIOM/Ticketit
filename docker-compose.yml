@@ -1,0 +1,78 @@
+# Lancement : cp .env.example .env && docker compose up -d
+# Avec les traces Langfuse : docker compose --profile observability up -d
+# Pour brancher le vrai module de Florent : changer EXECUTOR_URL dans .env
+# (ou remplacer le service "executor" par le sien via docker-compose.override.yml).
+
+services:
+  engine:
+    build: ./engine
+    env_file: .env
+    ports: ["8000:8000"]
+    volumes:
+      - ./contracts:/contracts:ro
+      - ./data:/data
+    depends_on:
+      neo4j: { condition: service_healthy }
+      ollama: { condition: service_started }
+      executor: { condition: service_started }
+
+  ui:
+    build: ./ui
+    env_file: .env
+    environment:
+      ENGINE_URL: http://engine:8000
+    ports: ["8501:8501"]
+    depends_on: [engine]
+
+  # Faux module d'exécution, conforme au contrat v1 (port et nom identiques au vrai)
+  executor:
+    build: ./mock_executor
+    env_file: .env
+    ports: ["8100:8100"]
+
+  neo4j:
+    image: neo4j:5.26
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+    ports: ["7474:7474", "7687:7687"]
+    volumes: [neo4j_data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      retries: 12
+
+  ollama:
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: [ollama_data:/root/.ollama]
+    # GPU NVIDIA : décommenter
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+
+  langfuse:
+    image: langfuse/langfuse:2
+    profiles: [observability]
+    environment:
+      DATABASE_URL: postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      SALT: ${LANGFUSE_SALT}
+    ports: ["3000:3000"]
+    depends_on: [langfuse-db]
+
+  langfuse-db:
+    image: postgres:16
+    profiles: [observability]
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD}
+      POSTGRES_DB: langfuse
+    volumes: [langfuse_db:/var/lib/postgresql/data]
+
+volumes:
+  neo4j_data:
+  ollama_data:
+  langfuse_db:
