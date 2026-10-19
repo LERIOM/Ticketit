@@ -1,0 +1,12 @@
+# Environnements et caches Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets et données d'exécution
+.env
+data/runtime/
+
+# macOS
+.DS_Store
