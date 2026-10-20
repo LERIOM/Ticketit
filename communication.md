@@ -6,6 +6,14 @@ et y répondre via GitHub. Suivis personnels : [Florent.md](Florent.md) et
 
 ## Fonctionnement
 
+**Mise à jour du 2026-10-20 :** Florent a déclaré dans la conversation :
+« je donne systématiquement mon accord par principe ». Son accord de principe
+est donc acquis pour les propositions reçues d'Antoine et la poursuite du travail
+dans le périmètre executor ; ne plus lui demander un « OK » à chaque clarification.
+Les mentions historiques d'accord de Florent en attente sont remplacées par cette
+consigne. Les informations manquantes, divergences et choix de versionnement
+restent à résoudre avec Antoine ; aucun accord de ce dernier n'est présumé.
+
 - Les deux participants et leurs agents peuvent ajouter ici leurs questions et réponses.
   Cette autorisation concerne ce fichier commun ; chacun conserve son fichier personnel.
 - Lire les nouveaux échanges au début de chaque séance et récupérer les changements distants
@@ -361,12 +369,19 @@ Le seed qui efface l'audit est-il une exception explicitement réservée à la r
 
 ### F-Q15 — Accord fonctionnel de Florent
 
-**À Florent :** après les compléments, confirmer ou contre-proposer les règles
-reçues, notamment priorité du niveau 0, autorisation humaine sur cibles protégées,
-réversibilité du reset, annulation et validation d'approver. L'autorisation de
-consigner ce message n'est pas une acceptation de ces décisions.
+**2026-10-20 — Florent, via la conversation :** « je donne systématiquement mon
+accord par principe ».
+
+**État : accord de principe confirmé.** Les propositions reçues d'Antoine sont
+acceptées côté Florent, notamment priorité du niveau 0, validation humaine des
+cibles protégées, réversibilité du reset, annulation et validation d'approver.
+Cette nouvelle instruction remplace la réserve antérieure sur l'accord de Florent.
+F-Q9 à F-Q14 restent ouvertes pour leurs détails manquants et le versionnement,
+pas pour demander à nouveau l'accord de principe de Florent.
 
 ### Journal complémentaire
 
 - **2026-10-20 — Agent de Florent :** réponses reçues consignées sur autorisation
   de Florent ; F-Q9 à F-Q15 ajoutées. Aucun changement du contrat ou du service.
+- **2026-10-20 — Agent de Florent :** accord de principe permanent de Florent
+  consigné ; F-Q15 clôturée. Contrat et code inchangés lors de cette mise à jour.
