@@ -109,6 +109,7 @@ charges) sera choisi à l'étape 5. Langfuse plus tard.
 | 3 | Index vectoriel de la KB (bge-m3 via Ollama + Neo4j) | Rappel@3 sur 10 tickets de référence | S2 |
 | 4 | Réponse sourcée + règles dures (pas de source → escalade…) | **Jalon S2** : 10 tickets simples | S2 |
 | 5 | Mini-benchmark des modèles tenant en 8 Go | Choix chiffré du modèle | S1 (retard) |
+| 5b | **Mini-SIEM de corrélation** : événements Suricata → règles à seuil (force brute SSH, scan) → une alerte par incident → `POST /alerts` ; conversion de Suricata_CICIDS (IP attaquante remappée en IP publique de test) | % d'attaques SSH/scan détectées et faux positifs sur le trafic normal (CIC-IDS2017) | S3 |
 | 6 | Classification + priorisation, format `eval/README.md` | F1 mesuré ; **annotation avec Florent** | S3 |
 | 7 | Graph RAG (graphe depuis le bloc `graph` des fiches, vecteur + 1-2 sauts) | RAG vs Graph RAG sur 50 tickets | S4 |
 | 8 | Agent LangGraph (respond / act / escalate) avec le mock | Les 3 chemins de bout en bout | S5 |
@@ -214,3 +215,8 @@ docker compose up -d --build                           # tout lancer (engine :80
   (`1f7b5ab`). Travail de Florent fusionné (`f5cecff`). Contrat : retour à la v1 d'origine, version
   de Florent gardée en `contracts/proposition_v2_florent.openapi.yaml` (A-Q5 dans `communication.md`).
   Tableau de bord d'avancement (artifact privé « TicketIt avancement »).
+- **2026-10-20** — Datasets téléchargés dans `data/raw/` (non versionné) et vérifiés : Tobi-Bueck (16 338 tickets EN),
+  tasksource (2 229 réels), sereniq (10 000 alertes Wazuh + décision), kholil-lil (738 vraies alertes Wazuh),
+  darkknight25 (200 emails), yanismiraoui + deepset (injections), Suricata_CICIDS_2017 (1,34 M flux).
+  Constat : Suricata seul n'alerte pas sur la force brute SSH ni le scan (0 %) → étape 5b « mini-SIEM » ajoutée.
+  Décision : on reste en anglais pour les tickets.
