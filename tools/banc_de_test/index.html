@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banc de test TicketIt</title>
+<style>
+/* Outil de travail : colonne unique, cartes de suites puis détail des tests. */
+:root {
+  --bg: #f6f7f5; --panel: #ffffff; --line: #dfe3dc; --fg: #1d221c; --muted: #5d665b;
+  --accent: #2f5d50; --ok: #2e7d4f; --ko: #b3261e; --warn: #9a6a00;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141815; --panel: #1c211d; --line: #2e352f; --fg: #e6ebe4; --muted: #9aa597;
+          --accent: #7fc4ad; --ok: #6fcf97; --ko: #ff8a80; --warn: #e3b341; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans);
+       padding: 24px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+main { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+button { font: inherit; font-size: 14px; border-radius: 8px; padding: 7px 14px; cursor: pointer;
+         border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: .55; cursor: progress; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.suites { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+        display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card.sel { border-color: var(--accent); }
+.card h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.desc { margin: 0; color: var(--muted); font-size: 13px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-block; padding: 0 9px; border-radius: 999px; border: 1px solid currentColor; font-size: 12px; white-space: nowrap; }
+.vert { color: var(--ok); } .rouge { color: var(--ko); } .jamais, .ignoré { color: var(--muted); } .run { color: var(--warn); }
+.ok { color: var(--ok); } .échec, .erreur { color: var(--ko); }
+.nums { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
+.dots { display: flex; gap: 3px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.dots i.vert { background: var(--ok); } .dots i.rouge { background: var(--ko); }
+.actions { display: flex; gap: 8px; margin-top: auto; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.panel h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.seg button { border-radius: 0; background: transparent; color: var(--fg); border-color: var(--line); }
+.seg button:first-child { border-radius: 8px 0 0 8px; } .seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.seg { display: inline-flex; }
+input[type=search] { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+                     background: var(--bg); color: var(--fg); min-width: 0; flex: 1 1 200px; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 6px 8px; }
+td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+td.f { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
+td.n { font-family: var(--mono); font-size: 12px; word-break: break-word; }
+td.d { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+details pre, pre.out { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 var(--mono); background: var(--bg);
+              border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 6px 0 0; max-height: 360px; overflow: auto; }
+summary { cursor: pointer; color: var(--muted); }
+.empty { color: var(--muted); padding: 24px 0; text-align: center; }
+.err { color: var(--ko); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .run { animation: blink 1.2s ease-in-out infinite; } }
+@keyframes blink { 50% { opacity: .45; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Banc de test TicketIt</h1>
+      <p class="sub">Lance une suite et lis le résultat de chaque test. Tout s'exécute sur ta machine.</p>
+    </div>
+    <button id="tout" type="button">Tout lancer</button>
+  </header>
+
+  <section class="suites" id="suites" aria-label="Suites de tests"><p class="empty">Chargement des suites…</p></section>
+
+  <section class="panel" id="detail" aria-live="polite">
+    <h2 id="d-titre">Résultats</h2>
+    <p class="sub" id="d-resume">Choisis une suite et clique sur « Lancer » ou « Voir ».</p>
+    <div class="tools" id="d-tools" hidden>
+      <div class="seg" role="group" aria-label="Filtre">
+        <button type="button" data-f="tous" aria-pressed="true">Tous</button>
+        <button type="button" data-f="ko" aria-pressed="false">Échecs</button>
+        <button type="button" data-f="ok" aria-pressed="false">Réussis</button>
+      </div>
+      <input type="search" id="q" placeholder="Chercher un test ou un fichier" aria-label="Chercher un test">
+    </div>
+    <div class="scroll"><table id="d-table" hidden>
+      <thead><tr><th>État</th><th>Fichier</th><th>Test</th><th style="text-align:right">Durée</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <details id="d-sortie" hidden><summary>Sortie brute de pytest</summary><pre class="out" id="d-out"></pre></details>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmtDate = iso => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+const fmtS = s => `${String(s).replace(".", ",")} s`;
+let current = null, filtre = "tous";
+
+function pill(statut) {
+  const label = { vert: "Vert", rouge: "Rouge", jamais: "Jamais lancée", run: "En cours…", absente: "Absente" }[statut] || statut;
+  const s = document.createElement("span");
+  s.className = "pill " + statut; s.textContent = label; return s;
+}
+
+async function chargerSuites() {
+  try {
+    const r = await fetch("/api/suites");
+    rendreSuites(await r.json());
+  } catch (e) {
+    $("#suites").innerHTML = '<p class="err">Le serveur du banc de test ne répond pas. Relance-le puis recharge la page.</p>';
+  }
+}
+
+function rendreSuites(list) {
+  const box = $("#suites"); box.textContent = "";
+  for (const s of list) {
+    const c = document.createElement("article");
+    c.className = "card" + (current === s.id ? " sel" : ""); c.id = "s-" + s.id;
+    const h = document.createElement("h2"); h.textContent = s.nom;
+    const who = document.createElement("span"); who.className = "nums"; who.textContent = "Par " + s.qui;
+    const d = document.createElement("p"); d.className = "desc"; d.textContent = s.description;
+    const row = document.createElement("div"); row.className = "row";
+    row.append(pill(s.en_cours ? "run" : (s.dernier ? s.dernier.statut : "jamais")));
+    const nums = document.createElement("span"); nums.className = "nums";
+    if (s.dernier) {
+      const r = s.dernier.resume;
+      nums.textContent = `${r.ok} ok · ${r.echecs} échec(s) · ${fmtS(s.dernier.duree_s)} · ${fmtDate(s.dernier.date)}`;
+    }
+    row.append(nums);
+    const dots = document.createElement("div"); dots.className = "dots";
+    dots.title = "Derniers passages, du plus récent au plus ancien";
+    for (const h2 of s.historique.slice(0, 12)) { const i = document.createElement("i"); i.className = h2.statut; dots.append(i); }
+    const act = document.createElement("div"); act.className = "actions";
+    const go = document.createElement("button"); go.type = "button"; go.textContent = "Lancer"; go.id = "run-" + s.id;
+    go.disabled = s.en_cours; go.addEventListener("click", () => lancer(s.id));
+    const see = document.createElement("button"); see.type = "button"; see.className = "ghost"; see.textContent = "Voir";
+    see.disabled = !s.dernier; see.addEventListener("click", () => voir(s.id, s.nom));
+    act.append(go, see);
+    c.append(h, who, d, row, dots, act);
+    box.append(c);
+  }
+}
+
+async function lancer(id) {
+  const btn = $("#run-" + id); if (btn) { btn.disabled = true; btn.textContent = "En cours…"; }
+  const card = $("#s-" + id); if (card) card.querySelector(".pill").replaceWith(pill("run"));
+  try {
+    const r = await fetch("/api/run/" + id, { method: "POST" });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Échec du lancement");
+    await chargerSuites();
+    afficher(id, res);
+  } catch (e) {
+    await chargerSuites();
+    $("#d-resume").innerHTML = ""; const p = document.createElement("span"); p.className = "err";
+    p.textContent = "Impossible de lancer la suite : " + e.message; $("#d-resume").append(p);
+  }
+}
+
+async function voir(id) {
+  const r = await fetch("/api/resultat/" + id);
+  if (r.ok) afficher(id, await r.json());
+}
+
+function afficher(id, res) {
+  current = id;
+  document.querySelectorAll(".card").forEach(c => c.classList.toggle("sel", c.id === "s-" + id));
+  const nom = $("#s-" + id + " h2")?.textContent || id;
+  $("#d-titre").textContent = nom;
+  const r = res.resume;
+  $("#d-resume").textContent = `${r.total} test(s) : ${r.ok} réussi(s), ${r.echecs} échec(s), ${r.ignores} ignoré(s) — ${fmtS(res.duree_s)}, ${fmtDate(res.date)}`;
+  $("#d-resume").prepend(pill(res.statut), " ");
+  $("#d-tools").hidden = false; $("#d-table").hidden = false; $("#d-sortie").hidden = false;
+  $("#d-out").textContent = res.sortie || "";
+  window._tests = res.tests;
+  if (r.echecs > 0) choisirFiltre("ko"); else rendreTests();
+}
+
+function rendreTests() {
+  const q = $("#q").value.trim().toLowerCase();
+  const body = $("#d-table tbody"); body.textContent = "";
+  const tests = (window._tests || []).filter(t =>
+    (filtre === "tous" || (filtre === "ok" ? t.statut === "ok" : (t.statut === "échec" || t.statut === "erreur"))) &&
+    (!q || (t.nom + " " + t.fichier).toLowerCase().includes(q)));
+  if (!tests.length) {
+    const tr = body.insertRow(); const td = tr.insertCell(); td.colSpan = 4; td.className = "empty";
+    td.textContent = filtre === "ko" ? "Aucun échec." : "Aucun test ne correspond.";
+    return;
+  }
+  for (const t of tests) {
+    const tr = body.insertRow();
+    tr.insertCell().append(pill(t.statut));
+    const f = tr.insertCell(); f.className = "f"; f.textContent = t.fichier;
+    const n = tr.insertCell(); n.className = "n"; n.textContent = t.nom;
+    if (t.statut !== "ok" && (t.message || t.detail)) {
+      const d = document.createElement("details");
+      const s = document.createElement("summary"); s.textContent = t.message || "Détail";
+      const pre = document.createElement("pre"); pre.textContent = t.detail;
+      d.append(s, pre); n.append(d);
+    }
+    const du = tr.insertCell(); du.className = "d"; du.textContent = fmtS(t.duree_s);
+  }
+}
+
+function choisirFiltre(f) {
+  filtre = f;
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.f === f)));
+  rendreTests();
+}
+
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => choisirFiltre(b.dataset.f)));
+$("#q").addEventListener("input", rendreTests);
+$("#tout").addEventListener("click", async () => {
+  $("#tout").disabled = true;
+  const list = await (await fetch("/api/suites")).json();
+  for (const s of list) await lancer(s.id);
+  $("#tout").disabled = false;
+});
+chargerSuites();
+</script>
+</body>
+</html>
