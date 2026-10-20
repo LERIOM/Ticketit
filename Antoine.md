@@ -40,6 +40,18 @@ autrement que par `POST /v1/execute` via `engine/app/executor_client.py`.
 - **Qualité avant vitesse, coûts bas** : tout en local par défaut (Ollama, bge-m3, Neo4j) ;
   l'API payante reste optionnelle (`LLM_PROVIDER=api`), réservée aux comparaisons de l'évaluation.
 
+## Infrastructure (2026-10-20)
+
+- **VM Azure** `vm-ticketit` (groupe `rg-ticketit`, région Sweden Central) : `Standard_D4ps_v6`,
+  4 vCPU Arm64, 16 Go, Ubuntu 24.04, disque SSD Standard 64 Go. ~0,13 €/h, arrêt automatique
+  chaque nuit à 22:00 UTC (désallocation). Démarrer : `az vm start -g rg-ticketit -n vm-ticketit`,
+  arrêter : `az vm deallocate -g rg-ticketit -n vm-ticketit`.
+- Pare-feu : **seul SSH (22) depuis l'IP d'Antoine** ; aucun service (Neo4j, Ollama, engine,
+  Streamlit) n'est exposé sur Internet, accès par tunnel SSH. Florent : demander ici si tu as
+  besoin d'un accès pour l'intégration (S6), on ajoutera ta clé et ton IP.
+- Abonnement « essai gratuit » (crédit limité dans le temps) : prévoir la bascule avant
+  l'expiration (Azure for Students ou Mac).
+
 ## État (2026-10-19)
 
 | Étape | Contenu | État |
@@ -79,37 +91,38 @@ Seuls les éléments marqués « commité » sont sur GitHub ; le reste n'existe
 - _(local, non commité)_ `engine/app/llm/base.py`, `providers.py` : **ébauche non testée** (interface `LLMProvider`,
   Ollama, API Anthropic `claude-opus-5-5` avec garde-fou anti-texte-non-masqué, traces).
 
-## Feuille de route — reste à faire côté Antoine
+## Feuille de route — plan validé par Antoine (2026-10-19)
 
-Ordre proposé, chaque item = une petite étape testable.
+Une étape à la fois : proposition → accord d'Antoine → code + tests → arrêt.
 
-**S2 — fin du parcours minimal (étape 3c)**
-1. `.env.example` (le README y fait référence mais il n'existe pas). Retirer `.venv/` (4 180 fichiers)
-   et les `.DS_Store` du dépôt : ils ont été commités dans « First commit » (le `.gitignore` est en place).
-2. Tests de l'ébauche LLM (faux LLM qui enregistre les prompts) ; choisir Ollama pour les
-   embeddings (`bge-m3` servi par Ollama : pas de torch dans l'image engine).
-3. `rag/kb.py` (chargement des fiches), `rag/vector.py` (index vectoriel Neo4j + index mémoire pour
-   les tests), réponse sourcée avec règle dure « pas de source → escalade ».
-4. Benchmark rapide des LLM locaux (S1 en retard) : qwen2.5 7B vs mistral 7B vs llama3.1 8B,
-   sur ~20 tickets, latence + qualité JSON.
+**Machines (mis à jour le 2026-10-20).** Le code s'écrit et se teste (tests unitaires, faux LLM)
+sur le Mac d'Antoine (M1, 8 Go). Les services lourds (Ollama, Neo4j, engine, UI) tournent sur la
+**VM Azure** (voir « Infrastructure », 16 Go, Arm64 comme le Mac) via Docker Compose, accès par
+tunnel SSH. Modèle de dev : `qwen2.5:3b-instruct` ; le modèle final (7-14B selon le cahier des
+charges) sera choisi à l'étape 5. Langfuse plus tard.
 
-**S3** — classification (catégorie, priorité, automatisable) avec Pydantic, 1 nouvel essai puis
-escalade ; annotation des ~300 tickets avec Florent (format à définir dans `eval/README.md`).
+| # | Étape | Livrable vérifiable | Semaine |
+|---|---|---|---|
+| 0 ✅ | Ménage git, `.env.example`, VM Azure, puis Docker + Ollama + qwen2.5:3b + bge-m3 + Neo4j sur la VM | Les 4 services répondent | S2 |
+| 1 | Relecture des étapes 2 et 3a avec Antoine, puis commit | Code expliqué et commité | S2 |
+| 2 | Couche LLM (Ollama / API optionnelle, traces) | Tests verts avec faux LLM | S2 |
+| 3 | Index vectoriel de la KB (bge-m3 via Ollama + Neo4j) | Rappel@3 sur 10 tickets de référence | S2 |
+| 4 | Réponse sourcée + règles dures (pas de source → escalade…) | **Jalon S2** : 10 tickets simples | S2 |
+| 5 | Mini-benchmark des modèles tenant en 8 Go | Choix chiffré du modèle | S1 (retard) |
+| 6 | Classification + priorisation, format `eval/README.md` | F1 mesuré ; **annotation avec Florent** | S3 |
+| 7 | Graph RAG (graphe depuis le bloc `graph` des fiches, vecteur + 1-2 sauts) | RAG vs Graph RAG sur 50 tickets | S4 |
+| 8 | Agent LangGraph (respond / act / escalate) avec le mock | Les 3 chemins de bout en bout | S5 |
+| 9 | Interface Streamlit | Démo cliquable | S6 |
+| 10 | Boucle d'apprentissage | Candidat rejeté jamais dans Neo4j | S6 |
+| 11 | Intégration avec l'executor de Florent | 3 scénarios + cas piège | S6 |
+| 12 | `eval/run_eval.py` | Rapport chiffré complet | S7 |
+| 13 | Seuils, prompts, Langfuse, documentation | Version gelée | S8 |
+| 14 | Rapport, démo vidéo, présentation | Livrables finaux | S9 |
 
-**S4** — Graph RAG : nœuds `Probleme/Symptome/Cause/Solution/Document/Actif/Ticket` créés depuis le
-bloc `graph` des fiches, recherche vecteur + 1-2 sauts ; comparaison RAG / Graph RAG sur 50 tickets.
-
-**S5** — agent LangGraph `ingest → mask → injection_check → classify → retrieve → decide →
-(respond | act | escalate) → finalize`, outils construits depuis `GET /v1/tools`, mapping des
-4 status. Proposition : l'API exécute `ingest/mask/injection_check` en synchrone (le texte brut
-n'est jamais stocké) puis le reste du graphe en tâche de fond.
-
-**S6** — Streamlit (file, vue ticket, validation niveau 2, annulation, audit, réponse humaine) ;
-boucle d'apprentissage (extraction → file à valider → Neo4j avec provenance) ; intégration avec
-le vrai executor de Florent.
-
-**S7-S9** — `eval/run_eval.py`, comparaisons (local/API, RAG/Graph RAG, avant/après 2 cycles),
-Langfuse, optimisation des seuils, rapport, démo.
+Notes de conception déjà arrêtées :
+- Embeddings bge-m3 servis par Ollama (pas de torch dans l'engine).
+- Agent (étape 8) : l'API exécute `ingest/mask/injection_check` en synchrone (le texte brut n'est
+  jamais stocké), puis le reste du graphe en tâche de fond.
 
 ### À valider par Antoine
 
@@ -180,3 +193,13 @@ docker compose up -d --build                           # tout lancer (engine :80
   chiffré, testés), KB rédigée. Implémentation arrêtée à la demande d'Antoine (séance de
   préparation uniquement) : l'ébauche LLM reste non testée, le RAG n'est pas commencé.
   Commit : KB + `.gitignore` + ce fichier. Le code de la 3a et l'ébauche LLM restent locaux.
+- **2026-10-20** — Étape 0 terminée. VM Azure créée (Sweden Central, D4ps_v6 Arm 16 Go, SSH
+  depuis l'IP d'Antoine uniquement, arrêt auto 22:00 UTC). Docker 29 + Compose 2.40 (paquets
+  Ubuntu). `docker compose up` : engine, ui, executor (mock), neo4j 5.26, ollama → tous OK,
+  ports liés à 127.0.0.1 (vérifié : seul le 22 est joignable depuis Internet). Neo4j plafonné à
+  1 Go de heap + 512 Mo de cache. Modèles : `qwen2.5:3b-instruct`, `bge-m3` (1024 dimensions).
+  **Première mesure** (CPU Arm 4 vCPU) : qwen2.5:3b lit ~62 jetons/s et génère ~16 jetons/s ;
+  sans RAG, sa réponse à « mot de passe Windows oublié » est fausse (d'où le RAG).
+  **À corriger à l'étape 1** : le masquage avale la parenthèse dans « Jean Dupont (06 12… » →
+  « <PERSONNE_1> <TEL_1>) » (le span téléphone de Presidio inclut « ( » ; réversible, mais à
+  nettoyer : rogner la ponctuation en bord de span).

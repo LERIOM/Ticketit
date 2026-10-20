@@ -1,13 +1,22 @@
 # Lancement : cp .env.example .env && docker compose up -d
 # Avec les traces Langfuse : docker compose --profile observability up -d
-# Pour brancher le vrai module de Florent : changer EXECUTOR_URL dans .env
-# (ou remplacer le service "executor" par le sien via docker-compose.override.yml).
+# Pour brancher le vrai module de Florent : remplacer le service "executor" par le sien via
+# docker-compose.override.yml (services: { executor: { build: ./executor } }).
+# Le .env sert aussi au développement hors Docker (localhost) : ici les URL pointent
+# vers les noms de service.
+# Ports publiés sur 127.0.0.1 uniquement : rien n'est exposé sur le réseau, même si le
+# pare-feu de la machine est mal réglé (Docker contourne ufw/iptables). Accès distant par
+# tunnel SSH, ex. : ssh -L 8501:localhost:8501 -L 7474:localhost:7474 -L 7687:localhost:7687 <vm>
 
 services:
   engine:
     build: ./engine
     env_file: .env
-    ports: ["8000:8000"]
+    environment:
+      EXECUTOR_URL: http://executor:8100
+      NEO4J_URI: bolt://neo4j:7687
+      OLLAMA_URL: http://ollama:11434
+    ports: ["127.0.0.1:8000:8000"]
     volumes:
       - ./contracts:/contracts:ro
       - ./data:/data
@@ -21,21 +30,25 @@ services:
     env_file: .env
     environment:
       ENGINE_URL: http://engine:8000
-    ports: ["8501:8501"]
+    ports: ["127.0.0.1:8501:8501"]
     depends_on: [engine]
 
   # Faux module d'exécution, conforme au contrat v1 (port et nom identiques au vrai)
   executor:
     build: ./mock_executor
     env_file: .env
-    ports: ["8100:8100"]
+    ports: ["127.0.0.1:8100:8100"]
 
   neo4j:
     image: neo4j:5.26
     environment:
       NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
       NEO4J_PLUGINS: '["apoc"]'
-    ports: ["7474:7474", "7687:7687"]
+      # Mémoire plafonnée pour laisser la place au LLM (VM 16 Go)
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512m
+    ports: ["127.0.0.1:7474:7474", "127.0.0.1:7687:7687"]
     volumes: [neo4j_data:/data]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
@@ -44,7 +57,7 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    ports: ["11434:11434"]
+    ports: ["127.0.0.1:11434:11434"]
     volumes: [ollama_data:/root/.ollama]
     # GPU NVIDIA : décommenter
     # deploy:
@@ -60,7 +73,7 @@ services:
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
       SALT: ${LANGFUSE_SALT}
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:3000:3000"]
     depends_on: [langfuse-db]
 
   langfuse-db:
