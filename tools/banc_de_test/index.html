@@ -5,53 +5,107 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Banc de test TicketIt</title>
 <style>
-/* Outil de travail : colonne unique, cartes de suites puis détail des tests. */
+/* Atelier de contrôle : en-tête + onglets ; Tests = indicateurs, suites, direct, graphiques, détail ;
+   Démo = ticket à gauche, chaîne de traitement en étapes. */
 :root {
-  --bg: #f6f7f5; --panel: #ffffff; --line: #dfe3dc; --fg: #1d221c; --muted: #5d665b;
-  --accent: #2f5d50; --ok: #2e7d4f; --ko: #b3261e; --warn: #9a6a00;
+  --bg: #f4f5f2; --panel: #fcfcfb; --line: #dcdfd8; --fg: #1b1f1a; --muted: #5a6157; --faint: #8b9287;
+  --accent: #2f5d50; --accent-ink: #ffffff;
+  --good: #0ca30c; --warn: #b77d00; --crit: #d03b3b; --series: #2a78d6;
+  --chip: #e8ece4;
   --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #141815; --panel: #1c211d; --line: #2e352f; --fg: #e6ebe4; --muted: #9aa597;
-          --accent: #7fc4ad; --ok: #6fcf97; --ko: #ff8a80; --warn: #e3b341; color-scheme: dark; }
+  :root { --bg: #121512; --panel: #1a1a19; --line: #2f342e; --fg: #f0efec; --muted: #c3c2b7; --faint: #8d9189;
+          --accent: #7fc4ad; --accent-ink: #10201a; --good: #0ca30c; --warn: #fab219; --crit: #d03b3b;
+          --series: #3987e5; --chip: #262b25; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans);
-       padding: 24px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
-main { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-h1 { margin: 0; font-size: 22px; font-weight: 600; }
+       padding: 22px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
+main { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-size: 23px; font-weight: 650; letter-spacing: -.01em; }
 .sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+h2 { margin: 0; font-size: 15px; font-weight: 600; }
 button { font: inherit; font-size: 14px; border-radius: 8px; padding: 7px 14px; cursor: pointer;
-         border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
+         border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
 button.ghost { background: transparent; color: var(--accent); }
-button:disabled { opacity: .55; cursor: progress; }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.suites { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
-        display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.card.sel { border-color: var(--accent); }
-.card h2 { margin: 0; font-size: 16px; font-weight: 600; }
+button:disabled { opacity: .5; cursor: progress; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 3px; background: var(--panel); }
+.tabs button { background: transparent; color: var(--muted); border: 0; border-radius: 7px; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; }
+.kpi .l { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.kpi .v { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi .s { font-size: 12px; color: var(--faint); }
+.suites { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 8px; }
+.card.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .desc { margin: 0; color: var(--muted); font-size: 13px; }
 .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pill { display: inline-block; padding: 0 9px; border-radius: 999px; border: 1px solid currentColor; font-size: 12px; white-space: nowrap; }
-.vert { color: var(--ok); } .rouge { color: var(--ko); } .jamais, .ignoré { color: var(--muted); } .run { color: var(--warn); }
-.ok { color: var(--ok); } .échec, .erreur { color: var(--ko); }
-.nums { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
-.dots { display: flex; gap: 3px; }
-.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.dots i.vert { background: var(--ok); } .dots i.rouge { background: var(--ko); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border-radius: 999px; border: 1px solid currentColor;
+        font-size: 12px; white-space: nowrap; line-height: 20px; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.vert, .ok, .action { color: var(--good); } .rouge, .échec, .erreur, .escalade { color: var(--crit); }
+.attente, .run { color: var(--warn); } .jamais, .ignoré, .reponse, .absente { color: var(--muted); }
+.nums { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); }
+.mini { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--chip); gap: 2px; }
+.mini i { display: block; height: 100%; }
+.mini i.o { background: var(--good); } .mini i.k { background: var(--crit); }
+.dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--chip); }
+.dots i.vert { background: var(--good); } .dots i.rouge { background: var(--crit); }
 .actions { display: flex; gap: 8px; margin-top: auto; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
-.panel h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+/* direct */
+.live-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.bar { height: 10px; border-radius: 5px; background: var(--chip); overflow: hidden; margin: 10px 0; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease-out; }
+.bar.ko i { background: var(--crit); }
+.grid { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0 10px; }
+.grid i { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--line); background: transparent; }
+.grid i.ok { background: var(--good); border-color: var(--good); }
+.grid i.échec, .grid i.erreur { background: var(--crit); border-color: var(--crit); }
+.grid i.ignoré { background: var(--faint); border-color: var(--faint); }
+.ticker { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;
+          font: 12px/1.4 var(--mono); max-height: 170px; overflow: hidden; }
+.ticker li { display: flex; gap: 8px; color: var(--muted); }
+.ticker li b { font-weight: 500; min-width: 48px; }
+@media (prefers-reduced-motion: no-preference) {
+  .ticker li:first-child { animation: in .35s ease-out; }
+  .grid i.ok, .grid i.échec { animation: pop .25s ease-out; }
+  .pill.run::before { animation: blink 1s ease-in-out infinite; }
+  .step.on { animation: rise .35s ease-out both; }
+}
+@keyframes in { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes pop { from { transform: scale(.4); } }
+@keyframes blink { 50% { opacity: .25; } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+/* graphiques */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .note { margin: 2px 0 8px; font-size: 12px; color: var(--muted); }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+       padding: 6px 9px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); white-space: nowrap; z-index: 2; }
+.tip .t { color: var(--muted); }
+.axis { fill: var(--faint); font-size: 11px; font-family: var(--sans); }
+.gridline { stroke: var(--line); stroke-width: 1; }
+/* résultats */
 .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.seg { display: inline-flex; }
 .seg button { border-radius: 0; background: transparent; color: var(--fg); border-color: var(--line); }
 .seg button:first-child { border-radius: 8px 0 0 8px; } .seg button:last-child { border-radius: 0 8px 8px 0; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-.seg { display: inline-flex; }
-input[type=search] { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
-                     background: var(--bg); color: var(--fg); min-width: 0; flex: 1 1 200px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+input[type=search], textarea { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
+                     background: var(--bg); color: var(--fg); min-width: 0; }
+input[type=search] { flex: 1 1 200px; }
 .scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 6px 8px; }
@@ -59,13 +113,40 @@ td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top
 td.f { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
 td.n { font-family: var(--mono); font-size: 12px; word-break: break-word; }
 td.d { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-details pre, pre.out { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 var(--mono); background: var(--bg);
-              border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 6px 0 0; max-height: 360px; overflow: auto; }
+pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 var(--mono); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 6px 0 0; max-height: 360px; overflow: auto; }
 summary { cursor: pointer; color: var(--muted); }
-.empty { color: var(--muted); padding: 24px 0; text-align: center; }
-.err { color: var(--ko); font-size: 13px; }
-@media (prefers-reduced-motion: no-preference) { .run { animation: blink 1.2s ease-in-out infinite; } }
-@keyframes blink { 50% { opacity: .45; } }
+.empty { color: var(--muted); padding: 20px 0; text-align: center; font-size: 13px; }
+.err { color: var(--crit); font-size: 13px; }
+/* démo */
+.demo { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 860px) { .demo { grid-template-columns: 1fr; } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.chips button { background: var(--chip); color: var(--fg); border-color: var(--line); font-size: 13px; padding: 5px 10px; }
+.chips button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+textarea { width: 100%; min-height: 150px; resize: vertical; font-size: 13px; }
+textarea.json { font-family: var(--mono); font-size: 12px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.step { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--panel); display: flex;
+        flex-direction: column; gap: 8px; min-width: 0; opacity: .45; }
+.step.on { opacity: 1; }
+.step .num { font: 600 11px var(--mono); color: var(--accent); letter-spacing: .06em; }
+.step p { margin: 0; font-size: 13px; }
+.txt { font-size: 13px; line-height: 1.6; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; word-break: break-word; }
+mark { background: color-mix(in srgb, var(--crit) 18%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.ph { font: 500 11.5px var(--mono); background: var(--chip); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; color: var(--accent); }
+.gauge { position: relative; height: 12px; border-radius: 6px; background: var(--chip); margin: 18px 0 6px; }
+.gauge i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--good); transition: width .5s ease-out; }
+.gauge i.hot { background: var(--crit); }
+.gauge b { position: absolute; top: -16px; font-size: 11px; color: var(--muted); font-weight: 400; transform: translateX(-50%); }
+.gauge u { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg); text-decoration: none; }
+.verdict { border-radius: 12px; padding: 14px 16px; border: 1px solid currentColor; display: flex; gap: 10px; align-items: center; }
+.verdict strong { font-size: 16px; }
+.verdict span { color: var(--fg); font-size: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--mono); font-size: 12px; word-break: break-word; }
+.small { font-size: 12px; color: var(--muted); }
+[hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -73,128 +154,258 @@ summary { cursor: pointer; color: var(--muted); }
   <header>
     <div>
       <h1>Banc de test TicketIt</h1>
-      <p class="sub">Lance une suite et lis le résultat de chaque test. Tout s'exécute sur ta machine.</p>
+      <p class="sub">Lance les tests et regarde le système travailler, sur ta machine.</p>
     </div>
-    <button id="tout" type="button">Tout lancer</button>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-tests" aria-selected="true" aria-controls="v-tests">Tests</button>
+      <button type="button" role="tab" id="tab-demo" aria-selected="false" aria-controls="v-demo">Démo pas à pas</button>
+    </div>
   </header>
 
-  <section class="suites" id="suites" aria-label="Suites de tests"><p class="empty">Chargement des suites…</p></section>
-
-  <section class="panel" id="detail" aria-live="polite">
-    <h2 id="d-titre">Résultats</h2>
-    <p class="sub" id="d-resume">Choisis une suite et clique sur « Lancer » ou « Voir ».</p>
-    <div class="tools" id="d-tools" hidden>
-      <div class="seg" role="group" aria-label="Filtre">
-        <button type="button" data-f="tous" aria-pressed="true">Tous</button>
-        <button type="button" data-f="ko" aria-pressed="false">Échecs</button>
-        <button type="button" data-f="ok" aria-pressed="false">Réussis</button>
-      </div>
-      <input type="search" id="q" placeholder="Chercher un test ou un fichier" aria-label="Chercher un test">
+  <!-- ============================== TESTS -->
+  <section id="v-tests" role="tabpanel" aria-labelledby="tab-tests" style="display:flex;flex-direction:column;gap:18px">
+    <div class="panel kpis" id="kpis">
+      <div class="kpi"><span class="l">Tests (derniers passages)</span><span class="v" id="k-total">—</span><span class="s" id="k-total-s">&nbsp;</span></div>
+      <div class="kpi"><span class="l">Taux de réussite</span><span class="v" id="k-taux">—</span><span class="s" id="k-taux-s">&nbsp;</span></div>
+      <div class="kpi"><span class="l">Suites vertes</span><span class="v" id="k-suites">—</span><span class="s" id="k-suites-s">&nbsp;</span></div>
+      <div class="kpi"><span class="l">Dernier passage</span><span class="v" id="k-date" style="font-size:20px">—</span><span class="s" id="k-date-s">&nbsp;</span></div>
     </div>
-    <div class="scroll"><table id="d-table" hidden>
-      <thead><tr><th>État</th><th>Fichier</th><th>Test</th><th style="text-align:right">Durée</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-    <details id="d-sortie" hidden><summary>Sortie brute de pytest</summary><pre class="out" id="d-out"></pre></details>
+
+    <div class="row" style="justify-content:space-between">
+      <h2>Suites</h2>
+      <button id="tout" type="button">Tout lancer</button>
+    </div>
+    <section class="suites" id="suites" aria-label="Suites de tests"><p class="empty">Chargement des suites…</p></section>
+
+    <section class="panel" id="live" hidden aria-live="polite">
+      <div class="live-head">
+        <h2 id="live-titre">En direct</h2>
+        <span class="nums" id="live-nums"></span>
+      </div>
+      <div class="bar" id="live-bar"><i></i></div>
+      <div class="grid" id="live-grid" aria-label="Un carré par test"></div>
+      <ul class="ticker" id="live-ticker"></ul>
+    </section>
+
+    <section class="charts" id="charts" hidden>
+      <div class="panel chart" id="c-hist"><h2>Historique des passages</h2><p class="note">Tests réussis et en échec, du plus ancien au plus récent.</p>
+        <div class="legend"><span><i style="background:var(--good)"></i>Réussis</span><span><i style="background:var(--crit)"></i>Échecs</span></div><div class="plot"></div></div>
+      <div class="panel chart" id="c-duree"><h2>Durée des passages</h2><p class="note">Secondes par passage complet de la suite.</p><div class="plot"></div></div>
+      <div class="panel chart" id="c-fichiers"><h2>Tests par fichier</h2><p class="note">Dernier passage, réussis et en échec.</p>
+        <div class="legend"><span><i style="background:var(--good)"></i>Réussis</span><span><i style="background:var(--crit)"></i>Échecs</span></div><div class="plot"></div></div>
+    </section>
+
+    <section class="panel" id="detail">
+      <h2 id="d-titre">Résultats</h2>
+      <p class="sub" id="d-resume">Lance une suite, ou clique sur « Voir » pour relire le dernier passage.</p>
+      <div class="tools" id="d-tools" hidden>
+        <div class="seg" role="group" aria-label="Filtre">
+          <button type="button" data-f="tous" aria-pressed="true">Tous</button>
+          <button type="button" data-f="ko" aria-pressed="false">Échecs</button>
+          <button type="button" data-f="ok" aria-pressed="false">Réussis</button>
+        </div>
+        <input type="search" id="q" placeholder="Chercher un test ou un fichier" aria-label="Chercher un test">
+      </div>
+      <div class="scroll"><table id="d-table" hidden>
+        <thead><tr><th>État</th><th>Fichier</th><th>Test</th><th style="text-align:right">Durée</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <details id="d-sortie" hidden><summary>Sortie brute de pytest</summary><pre id="d-out"></pre></details>
+    </section>
+  </section>
+
+  <!-- ============================== DÉMO -->
+  <section id="v-demo" role="tabpanel" aria-labelledby="tab-demo" hidden>
+    <div class="demo">
+      <div class="panel">
+        <h2>Le ticket</h2>
+        <p class="small">Choisis un exemple ou écris ton propre ticket, puis lance l'analyse.</p>
+        <div class="chips" id="exemples"></div>
+        <label class="small" for="saisie" id="saisie-label">Texte du ticket</label>
+        <textarea id="saisie" spellcheck="false"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button type="button" id="analyser">Analyser</button>
+          <span class="small" id="demo-etat"></span>
+        </div>
+        <p class="small" style="margin-top:14px">Masquage, détection d'injection, résolution des cibles et faux executor sont le vrai code
+          du projet. L'action proposée est une règle de démonstration en attendant l'agent (étape 8).</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <div class="verdict reponse" id="verdict" hidden><strong id="v-titre"></strong><span id="v-texte"></span></div>
+        <div class="steps" id="steps">
+          <article class="step" id="st-1"><span class="num">1 · ENTRÉE</span><h2>Ce qui arrive</h2><div class="body"><p class="small">En attente d'un ticket.</p></div></article>
+          <article class="step" id="st-2"><span class="num">2 · MASQUAGE</span><h2>Ce que voit le LLM</h2><div class="body"><p class="small">Les données personnelles et les cibles deviennent des pseudonymes.</p></div></article>
+          <article class="step" id="st-3"><span class="num">3 · INJECTION</span><h2>Le ticket est-il piégé ?</h2><div class="body"><p class="small">Règles + petit classifieur.</p></div></article>
+          <article class="step" id="st-4"><span class="num">4 · ACTION</span><h2>Ce que l'agent propose</h2><div class="body"><p class="small">Simulé jusqu'à l'étape 8.</p></div></article>
+          <article class="step" id="st-5"><span class="num">5 · CIBLE</span><h2>Le code vérifie la cible</h2><div class="body"><p class="small">Seuls IP externe, poste et compte sont acceptés.</p></div></article>
+          <article class="step" id="st-6"><span class="num">6 · EXECUTOR</span><h2>L'executor décide</h2><div class="body"><p class="small">Niveaux 0 à 3, jamais le LLM.</p></div></article>
+        </div>
+      </div>
+    </div>
   </section>
 </main>
 
 <script>
 const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
 const fmtDate = iso => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
-const fmtS = s => `${String(s).replace(".", ",")} s`;
-let current = null, filtre = "tous";
+const fmtS = s => `${String(Math.round(s * 10) / 10).replace(".", ",")} s`;
+const pct = x => `${String(Math.round(x * 1000) / 10).replace(".", ",")} %`;
+const LABEL = { vert: "Vert", rouge: "Rouge", jamais: "Jamais lancée", run: "En cours", absente: "Absente",
+  ok: "Réussi", "échec": "Échec", erreur: "Erreur", "ignoré": "Ignoré",
+  executed: "Exécutée", pending_approval: "En attente", refused: "Refusée", failed: "Échouée" };
+let SUITES = [], current = null, filtre = "tous", running = false;
 
-function pill(statut) {
-  const label = { vert: "Vert", rouge: "Rouge", jamais: "Jamais lancée", run: "En cours…", absente: "Absente" }[statut] || statut;
-  const s = document.createElement("span");
-  s.className = "pill " + statut; s.textContent = label; return s;
+function el(tag, attrs = {}, text) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function svg(tag, attrs = {}) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function pill(statut, label) { return el("span", { class: "pill " + statut }, label || LABEL[statut] || statut); }
+
+/* ---------------------------------------------------------------- onglets */
+for (const [tab, view] of [["#tab-tests", "#v-tests"], ["#tab-demo", "#v-demo"]]) {
+  $(tab).addEventListener("click", () => {
+    document.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute("aria-selected", String(b === $(tab))));
+    $("#v-tests").hidden = view !== "#v-tests"; $("#v-demo").hidden = view !== "#v-demo";
+    if (view === "#v-tests") $("#v-tests").style.display = "flex";
+  });
 }
 
+/* ---------------------------------------------------------------- suites */
 async function chargerSuites() {
-  try {
-    const r = await fetch("/api/suites");
-    rendreSuites(await r.json());
-  } catch (e) {
-    $("#suites").innerHTML = '<p class="err">Le serveur du banc de test ne répond pas. Relance-le puis recharge la page.</p>';
-  }
+  try { SUITES = await (await fetch("/api/suites")).json(); }
+  catch { $("#suites").innerHTML = '<p class="err">Le serveur du banc de test ne répond pas. Relance-le puis recharge la page.</p>'; return; }
+  rendreKpis(); rendreSuites();
+  if (current) rendreGraphes(current);
 }
 
-function rendreSuites(list) {
+function rendreKpis() {
+  const faites = SUITES.filter(s => s.dernier);
+  const total = faites.reduce((a, s) => a + s.dernier.resume.total, 0);
+  const ok = faites.reduce((a, s) => a + s.dernier.resume.ok, 0);
+  const vertes = faites.filter(s => s.dernier.statut === "vert").length;
+  $("#k-total").textContent = total ? total.toLocaleString("fr-FR") : "—";
+  $("#k-total-s").textContent = `${faites.length} suite(s) lancée(s)`;
+  $("#k-taux").textContent = total ? pct(ok / total) : "—";
+  $("#k-taux-s").textContent = total ? `${total - ok} échec(s)` : " ";
+  $("#k-taux").style.color = total && ok === total ? "var(--good)" : total ? "var(--crit)" : "";
+  $("#k-suites").textContent = `${vertes} / ${SUITES.length}`;
+  $("#k-suites-s").textContent = vertes === SUITES.length ? "Tout est vert" : `${SUITES.length - vertes} à regarder`;
+  const last = faites.map(s => s.dernier.date).sort().pop();
+  $("#k-date").textContent = last ? fmtDate(last) : "—";
+}
+
+function rendreSuites() {
   const box = $("#suites"); box.textContent = "";
-  for (const s of list) {
-    const c = document.createElement("article");
-    c.className = "card" + (current === s.id ? " sel" : ""); c.id = "s-" + s.id;
-    const h = document.createElement("h2"); h.textContent = s.nom;
-    const who = document.createElement("span"); who.className = "nums"; who.textContent = "Par " + s.qui;
-    const d = document.createElement("p"); d.className = "desc"; d.textContent = s.description;
-    const row = document.createElement("div"); row.className = "row";
-    row.append(pill(s.en_cours ? "run" : (s.dernier ? s.dernier.statut : "jamais")));
-    const nums = document.createElement("span"); nums.className = "nums";
+  for (const s of SUITES) {
+    const c = el("article", { class: "panel card" + (current === s.id ? " sel" : ""), id: "s-" + s.id });
+    const st = s.en_cours ? "run" : (s.dernier ? s.dernier.statut : "jamais");
+    const top = el("div", { class: "row", style: "justify-content:space-between" });
+    top.append(el("h2", {}, s.nom), pill(st));
+    c.append(top, el("p", { class: "desc" }, s.description));
     if (s.dernier) {
-      const r = s.dernier.resume;
-      nums.textContent = `${r.ok} ok · ${r.echecs} échec(s) · ${fmtS(s.dernier.duree_s)} · ${fmtDate(s.dernier.date)}`;
-    }
-    row.append(nums);
-    const dots = document.createElement("div"); dots.className = "dots";
-    dots.title = "Derniers passages, du plus récent au plus ancien";
-    for (const h2 of s.historique.slice(0, 12)) { const i = document.createElement("i"); i.className = h2.statut; dots.append(i); }
-    const act = document.createElement("div"); act.className = "actions";
-    const go = document.createElement("button"); go.type = "button"; go.textContent = "Lancer"; go.id = "run-" + s.id;
-    go.disabled = s.en_cours; go.addEventListener("click", () => lancer(s.id));
-    const see = document.createElement("button"); see.type = "button"; see.className = "ghost"; see.textContent = "Voir";
-    see.disabled = !s.dernier; see.addEventListener("click", () => voir(s.id, s.nom));
+      const r = s.dernier.resume, t = Math.max(1, r.total);
+      const mini = el("div", { class: "mini", title: `${r.ok} réussis, ${r.echecs} échecs` });
+      if (r.ok) mini.append(el("i", { class: "o", style: `width:${r.ok / t * 100}%` }));
+      if (r.echecs) mini.append(el("i", { class: "k", style: `width:${r.echecs / t * 100}%` }));
+      c.append(mini, el("span", { class: "nums" }, `${r.ok} réussis · ${r.echecs} échec(s) · ${fmtS(s.dernier.duree_s)} · par ${s.qui}`));
+    } else c.append(el("span", { class: "nums" }, `Jamais lancée · par ${s.qui}`));
+    const dots = el("div", { class: "dots", title: "Derniers passages (le plus récent à gauche)" });
+    for (const h of s.historique.slice(0, 20)) dots.append(el("i", { class: h.statut }));
+    const act = el("div", { class: "actions" });
+    const go = el("button", { type: "button", id: "run-" + s.id }, "Lancer");
+    go.disabled = s.en_cours || running; go.addEventListener("click", () => lancer(s.id));
+    const see = el("button", { type: "button", class: "ghost" }, "Voir");
+    see.disabled = !s.dernier; see.addEventListener("click", () => voir(s.id));
     act.append(go, see);
-    c.append(h, who, d, row, dots, act);
+    c.append(dots, act);
     box.append(c);
   }
 }
 
-async function lancer(id) {
-  const btn = $("#run-" + id); if (btn) { btn.disabled = true; btn.textContent = "En cours…"; }
-  const card = $("#s-" + id); if (card) card.querySelector(".pill").replaceWith(pill("run"));
-  try {
-    const r = await fetch("/api/run/" + id, { method: "POST" });
-    const res = await r.json();
-    if (!r.ok) throw new Error(res.detail || "Échec du lancement");
-    await chargerSuites();
-    afficher(id, res);
-  } catch (e) {
-    await chargerSuites();
-    $("#d-resume").innerHTML = ""; const p = document.createElement("span"); p.className = "err";
-    p.textContent = "Impossible de lancer la suite : " + e.message; $("#d-resume").append(p);
-  }
+/* ---------------------------------------------------------------- direct */
+function lancer(id) {
+  return new Promise(resolve => {
+    const suite = SUITES.find(s => s.id === id);
+    running = true; rendreSuites(); $("#tout").disabled = true;
+    const live = $("#live"); live.hidden = false;
+    $("#live-titre").textContent = "En direct · " + suite.nom;
+    const grid = $("#live-grid"), ticker = $("#live-ticker"), bar = $("#live-bar");
+    grid.textContent = ""; ticker.textContent = ""; bar.classList.remove("ko"); bar.firstElementChild.style.width = "0%";
+    let total = 0, n = 0, ok = 0, ko = 0; const t0 = performance.now();
+    const nums = () => $("#live-nums").textContent =
+      `${n}${total ? " / " + total : ""} tests · ${ok} réussis · ${ko} échec(s) · ${fmtS((performance.now() - t0) / 1000)}`;
+    const tick = setInterval(nums, 200); nums();
+    const es = new EventSource(`/api/run/${id}/stream`);
+    let fini = false;
+    es.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m.type === "total") {
+        total = m.total;
+        for (let i = 0; i < total; i++) grid.append(el("i"));
+      } else if (m.type === "test") {
+        n++; if (m.statut === "ok") ok++; else if (m.statut !== "ignoré") ko++;
+        const sq = grid.children[n - 1] || grid.appendChild(el("i"));
+        sq.className = m.statut; sq.title = m.test;
+        bar.firstElementChild.style.width = (m.pct || (total ? n / total * 100 : 0)) + "%";
+        if (ko) bar.classList.add("ko");
+        const li = el("li"); li.append(el("b", { class: m.statut }, LABEL[m.statut] || m.statut), el("span", {}, m.test));
+        ticker.prepend(li); while (ticker.children.length > 9) ticker.lastChild.remove();
+      } else if (m.type === "fin") {
+        fini = true; es.close(); clearInterval(tick); nums();
+        bar.firstElementChild.style.width = "100%";
+        running = false; $("#tout").disabled = false;
+        chargerSuites().then(() => { afficher(id, m.resultat); resolve(); });
+      }
+    };
+    es.onerror = () => {
+      if (fini) return;
+      es.close(); clearInterval(tick); running = false; $("#tout").disabled = false;
+      $("#live-nums").textContent = "Interrompu : la suite tourne déjà ou le serveur ne répond plus.";
+      chargerSuites().then(resolve);
+    };
+  });
 }
 
+$("#tout").addEventListener("click", async () => { for (const s of SUITES) await lancer(s.id); });
+
+/* ---------------------------------------------------------------- résultats */
 async function voir(id) {
   const r = await fetch("/api/resultat/" + id);
   if (r.ok) afficher(id, await r.json());
 }
 
 function afficher(id, res) {
-  current = id;
+  current = id; window._dernier = res;
   document.querySelectorAll(".card").forEach(c => c.classList.toggle("sel", c.id === "s-" + id));
-  const nom = $("#s-" + id + " h2")?.textContent || id;
-  $("#d-titre").textContent = nom;
-  const r = res.resume;
-  $("#d-resume").textContent = `${r.total} test(s) : ${r.ok} réussi(s), ${r.echecs} échec(s), ${r.ignores} ignoré(s) — ${fmtS(res.duree_s)}, ${fmtDate(res.date)}`;
-  $("#d-resume").prepend(pill(res.statut), " ");
-  $("#d-tools").hidden = false; $("#d-table").hidden = false; $("#d-sortie").hidden = false;
+  const suite = SUITES.find(s => s.id === id);
+  $("#d-titre").textContent = suite ? suite.nom : id;
+  const r = res.resume, d = $("#d-resume");
+  d.textContent = ` ${r.total} test(s) : ${r.ok} réussi(s), ${r.echecs} échec(s), ${r.ignores} ignoré(s) · ${fmtS(res.duree_s)} · ${fmtDate(res.date)}`;
+  d.prepend(pill(res.statut));
+  $("#d-tools").hidden = $("#d-table").hidden = $("#d-sortie").hidden = false;
   $("#d-out").textContent = res.sortie || "";
   window._tests = res.tests;
   if (r.echecs > 0) choisirFiltre("ko"); else rendreTests();
+  rendreGraphes(id);
 }
 
 function rendreTests() {
-  const q = $("#q").value.trim().toLowerCase();
-  const body = $("#d-table tbody"); body.textContent = "";
+  const q = $("#q").value.trim().toLowerCase(), body = $("#d-table tbody");
+  body.textContent = "";
   const tests = (window._tests || []).filter(t =>
     (filtre === "tous" || (filtre === "ok" ? t.statut === "ok" : (t.statut === "échec" || t.statut === "erreur"))) &&
     (!q || (t.nom + " " + t.fichier).toLowerCase().includes(q)));
   if (!tests.length) {
-    const tr = body.insertRow(); const td = tr.insertCell(); td.colSpan = 4; td.className = "empty";
-    td.textContent = filtre === "ko" ? "Aucun échec." : "Aucun test ne correspond.";
-    return;
+    const td = body.insertRow().insertCell(); td.colSpan = 4; td.className = "empty";
+    td.textContent = filtre === "ko" ? "Aucun échec." : "Aucun test ne correspond."; return;
   }
   for (const t of tests) {
     const tr = body.insertRow();
@@ -202,30 +413,262 @@ function rendreTests() {
     const f = tr.insertCell(); f.className = "f"; f.textContent = t.fichier;
     const n = tr.insertCell(); n.className = "n"; n.textContent = t.nom;
     if (t.statut !== "ok" && (t.message || t.detail)) {
-      const d = document.createElement("details");
-      const s = document.createElement("summary"); s.textContent = t.message || "Détail";
-      const pre = document.createElement("pre"); pre.textContent = t.detail;
-      d.append(s, pre); n.append(d);
+      const det = el("details"); det.append(el("summary", {}, t.message || "Détail"), el("pre", {}, t.detail)); n.append(det);
     }
     const du = tr.insertCell(); du.className = "d"; du.textContent = fmtS(t.duree_s);
   }
 }
-
 function choisirFiltre(f) {
   filtre = f;
   document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.f === f)));
   rendreTests();
 }
-
 document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => choisirFiltre(b.dataset.f)));
 $("#q").addEventListener("input", rendreTests);
-$("#tout").addEventListener("click", async () => {
-  $("#tout").disabled = true;
-  const list = await (await fetch("/api/suites")).json();
-  for (const s of list) await lancer(s.id);
-  $("#tout").disabled = false;
+
+/* ---------------------------------------------------------------- graphiques */
+function tip(box) {
+  let t = box.querySelector(".tip");
+  if (!t) { t = el("div", { class: "tip", hidden: "" }); box.append(t); }
+  return {
+    show(ev, lines) {
+      t.textContent = ""; lines.forEach((l, i) => t.append(el("div", { class: i ? "" : "t" }, l)));
+      t.hidden = false;
+      const r = box.getBoundingClientRect(), w = t.offsetWidth;
+      let x = ev.clientX - r.left + 12; if (x + w > r.width) x = ev.clientX - r.left - w - 12;
+      t.style.left = Math.max(0, x) + "px"; t.style.top = (ev.clientY - r.top - 10) + "px";
+    },
+    hide() { t.hidden = true; }
+  };
+}
+function niceMax(v) { if (v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / p) * p; }
+function yAxis(g, H, top, max, w, left, fmt) {
+  for (let i = 0; i <= 2; i++) {
+    const v = max * i / 2, y = top + H - (v / max) * H;
+    g.append(svg("line", { x1: left, x2: w, y1: y, y2: y, class: "gridline" }));
+    const tx = svg("text", { x: left - 6, y: y + 4, "text-anchor": "end", class: "axis" }); tx.textContent = fmt(v); g.append(tx);
+  }
+}
+
+function rendreGraphes(id) {
+  const suite = SUITES.find(s => s.id === id);
+  if (!suite || !suite.historique.length) { $("#charts").hidden = true; return; }
+  $("#charts").hidden = false;
+  const hist = suite.historique.slice(0, 20).reverse();
+  barresHistorique($("#c-hist"), hist);
+  ligneDuree($("#c-duree"), hist);
+  if (window._dernier && window._dernier.suite === id) barresFichiers($("#c-fichiers"), window._dernier.tests);
+}
+
+function barresHistorique(box, hist) {
+  const plot = box.querySelector(".plot"); plot.textContent = "";
+  const W = Math.max(300, plot.clientWidth || 320), H = 150, top = 8, left = 34, bottom = 22;
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H + top + bottom}`, role: "img", "aria-label": "Historique des passages" });
+  const max = niceMax(Math.max(...hist.map(h => h.resume.total)));
+  yAxis(s, H, top, max, W, left, v => Math.round(v));
+  const n = hist.length, band = (W - left) / Math.max(n, 6), bw = Math.min(28, band * .62);
+  const T = tip(box);
+  hist.forEach((h, i) => {
+    const x = left + i * band + (band - bw) / 2, r = h.resume;
+    const hOk = r.ok / max * H, hKo = r.echecs / max * H, base = top + H;
+    const g = svg("g", { style: "cursor:default" });
+    if (r.ok) g.append(svg("rect", { x, y: base - hOk, width: bw, height: Math.max(1, hOk - (r.echecs ? 1 : 0)), rx: 3, fill: "var(--good)" }));
+    if (r.echecs) g.append(svg("rect", { x, y: base - hOk - hKo, width: bw, height: Math.max(2, hKo - 1), rx: 3, fill: "var(--crit)" }));
+    const hit = svg("rect", { x: left + i * band, y: top, width: band, height: H, fill: "transparent" });
+    hit.addEventListener("mousemove", ev => T.show(ev, [fmtDate(h.date), `${r.ok} réussis`, `${r.echecs} échec(s)`]));
+    hit.addEventListener("mouseleave", T.hide);
+    g.append(hit); s.append(g);
+  });
+  const lab = (i, a) => { const t = svg("text", { x: left + i * band + band / 2, y: top + H + 15, "text-anchor": a, class: "axis" });
+    t.textContent = new Date(hist[i].date).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    s.append(t); };
+  if (n > 1 && (n - 1) * band > 120) { lab(0, "middle"); lab(n - 1, "middle"); } else lab(n - 1, "middle");
+  plot.append(s);
+}
+
+function ligneDuree(box, hist) {
+  const plot = box.querySelector(".plot"); plot.textContent = "";
+  const W = Math.max(300, plot.clientWidth || 320), H = 150, top = 10, left = 40, bottom = 22, right = 8;
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H + top + bottom}`, role: "img", "aria-label": "Durée des passages" });
+  const vals = hist.map(h => h.duree_s || 0), max = niceMax(Math.max(...vals, 1));
+  yAxis(s, H, top, max, W - right, left, v => fmtS(v));
+  const n = hist.length, X = i => left + (n === 1 ? (W - left - right) / 2 : i * (W - left - right) / (n - 1)),
+        Y = v => top + H - v / max * H;
+  if (n > 1) s.append(svg("polyline", { points: vals.map((v, i) => `${X(i)},${Y(v)}`).join(" "), fill: "none",
+    stroke: "var(--series)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+  const T = tip(box);
+  vals.forEach((v, i) => {
+    const dot = svg("circle", { cx: X(i), cy: Y(v), r: 4, fill: "var(--series)", stroke: "var(--panel)", "stroke-width": 2 });
+    const hit = svg("circle", { cx: X(i), cy: Y(v), r: 12, fill: "transparent" });
+    hit.addEventListener("mousemove", ev => T.show(ev, [fmtDate(hist[i].date), fmtS(v)]));
+    hit.addEventListener("mouseleave", T.hide);
+    s.append(dot, hit);
+  });
+  const last = svg("text", { x: X(n - 1), y: Y(vals[n - 1]) - 9, "text-anchor": n > 1 ? "end" : "middle", class: "axis" });
+  last.textContent = fmtS(vals[n - 1]); s.append(last);
+  plot.append(s);
+}
+
+function barresFichiers(box, tests) {
+  const plot = box.querySelector(".plot"); plot.textContent = "";
+  const parFichier = new Map();
+  for (const t of tests) {
+    const k = t.fichier.replace(/^tests\//, "");
+    const v = parFichier.get(k) || { ok: 0, ko: 0 };
+    if (t.statut === "ok") v.ok++; else if (t.statut !== "ignoré") v.ko++;
+    parFichier.set(k, v);
+  }
+  const rows = [...parFichier.entries()].sort((a, b) => (b[1].ok + b[1].ko) - (a[1].ok + a[1].ko));
+  if (!rows.length) { plot.append(el("p", { class: "empty" }, "Aucun test.")); return; }
+  const W = Math.max(300, plot.clientWidth || 320), rowH = 24, top = 4;
+  const s = svg("svg", { viewBox: `0 0 ${W} ${rows.length * rowH + top + 4}`, role: "img", "aria-label": "Tests par fichier" });
+  const probe = svg("text", { class: "axis" }); s.append(probe); plot.append(s);
+  let lw = 0; for (const [k] of rows) { probe.textContent = k; lw = Math.max(lw, probe.getComputedTextLength()); }
+  probe.remove(); lw = Math.min(lw + 10, W * .45);
+  const max = Math.max(...rows.map(([, v]) => v.ok + v.ko)), bwMax = W - lw - 36, T = tip(box);
+  rows.forEach(([k, v], i) => {
+    const y = top + i * rowH, h = 12, yy = y + (rowH - h) / 2;
+    const name = svg("text", { x: lw - 8, y: y + rowH / 2 + 4, "text-anchor": "end", class: "axis" });
+    name.textContent = k.length > 34 ? k.slice(0, 33) + "…" : k; s.append(name);
+    const wOk = v.ok / max * bwMax, wKo = v.ko / max * bwMax;
+    if (v.ok) s.append(svg("rect", { x: lw, y: yy, width: Math.max(2, wOk - (v.ko ? 1 : 0)), height: h, rx: 3, fill: "var(--good)" }));
+    if (v.ko) s.append(svg("rect", { x: lw + wOk + 1, y: yy, width: Math.max(2, wKo - 1), height: h, rx: 3, fill: "var(--crit)" }));
+    const val = svg("text", { x: lw + wOk + wKo + 6, y: y + rowH / 2 + 4, class: "axis" }); val.textContent = v.ok + v.ko; s.append(val);
+    const hit = svg("rect", { x: 0, y, width: W, height: rowH, fill: "transparent" });
+    hit.addEventListener("mousemove", ev => T.show(ev, [k, `${v.ok} réussis`, `${v.ko} échec(s)`]));
+    hit.addEventListener("mouseleave", T.hide);
+    s.append(hit);
+  });
+}
+window.addEventListener("resize", () => { if (current) rendreGraphes(current); });
+
+/* ---------------------------------------------------------------- démo */
+let EXEMPLES = [], exemple = null;
+async function chargerExemples() {
+  EXEMPLES = await (await fetch("/api/demo/exemples")).json();
+  const box = $("#exemples");
+  for (const e of EXEMPLES) {
+    const b = el("button", { type: "button", "aria-pressed": "false" }, e.titre);
+    b.addEventListener("click", () => choisirExemple(e, b));
+    box.append(b);
+  }
+  const libre = el("button", { type: "button", "aria-pressed": "false" }, "Mon ticket");
+  libre.addEventListener("click", () => choisirExemple(null, libre));
+  box.append(libre);
+  choisirExemple(EXEMPLES[0], box.firstElementChild);
+}
+function choisirExemple(e, btn) {
+  exemple = e;
+  document.querySelectorAll("#exemples button").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+  const ta = $("#saisie");
+  if (e && e.type === "alerte") {
+    ta.value = JSON.stringify(e.alerte, null, 2); ta.classList.add("json"); $("#saisie-label").textContent = "Alerte JSON (Wazuh / Suricata)";
+  } else {
+    ta.value = e ? e.texte : ""; ta.classList.remove("json"); $("#saisie-label").textContent = "Texte du ticket";
+    if (!e) ta.focus();
+  }
+}
+
+function surligner(texte, valeurs) {
+  const frag = document.createDocumentFragment();
+  const vals = valeurs.filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!vals.length) { frag.append(texte); return frag; }
+  const rx = new RegExp(vals.map(v => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  let i = 0;
+  for (const m of texte.matchAll(rx)) { frag.append(texte.slice(i, m.index), el("mark", {}, m[0])); i = m.index + m[0].length; }
+  frag.append(texte.slice(i)); return frag;
+}
+function pseudos(texte) {
+  const frag = document.createDocumentFragment(); let i = 0;
+  for (const m of texte.matchAll(/<[A-Z_]+_\d+>/g)) { frag.append(texte.slice(i, m.index), el("span", { class: "ph" }, m[0])); i = m.index + m[0].length; }
+  frag.append(texte.slice(i)); return frag;
+}
+function etape(n, ...nodes) {
+  const st = $("#st-" + n), body = st.querySelector(".body");
+  body.textContent = ""; body.append(...nodes);
+  return new Promise(r => setTimeout(() => { st.classList.add("on"); r(); }, 260));
+}
+
+$("#analyser").addEventListener("click", async () => {
+  const brut = $("#saisie").value;
+  let payload;
+  if (exemple && exemple.type === "alerte") {
+    try { payload = { type: "alerte", alerte: JSON.parse(brut) }; }
+    catch { $("#demo-etat").textContent = "Le JSON de l'alerte est invalide."; return; }
+  } else {
+    if (!brut.trim()) { $("#demo-etat").textContent = "Écris d'abord un ticket."; return; }
+    payload = { type: "ticket", texte: brut };
+  }
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("on"));
+  $("#verdict").hidden = true;
+  $("#analyser").disabled = true;
+  $("#demo-etat").textContent = "Analyse… (environ 6 s la première fois, le temps de charger les modèles)";
+  let d;
+  try {
+    const r = await fetch("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    d = await r.json(); if (!r.ok) throw new Error(d.detail || "erreur");
+  } catch (e) { $("#demo-etat").textContent = "Échec de l'analyse : " + e.message; $("#analyser").disabled = false; return; }
+  $("#demo-etat").textContent = `Analysé en ${d.duree_ms} ms`;
+
+  const valeurs = d.masquage.pseudonymes.map(p => p.valeur);
+  const t1 = el("div", { class: "txt" }); t1.append(surligner(d.entree.texte, valeurs));
+  await etape(1, t1, el("p", { class: "small" }, `Langue détectée : ${d.langue === "fr" ? "français" : "anglais"} · en rouge : ce qui va être masqué`));
+
+  const t2 = el("div", { class: "txt" }); t2.append(pseudos(d.masquage.texte_masque));
+  const kv = el("dl", { class: "kv" });
+  for (const p of d.masquage.pseudonymes) {
+    const dt = el("dt"); dt.append(el("span", { class: "ph" }, p.pseudo));
+    kv.append(dt, el("dd", {}, `${p.type} · ${p.valeur}${p.actionnable ? " · cible d'action possible" : ""}`));
+  }
+  await etape(2, t2, d.masquage.pseudonymes.length ? kv : el("p", { class: "small" }, "Rien à masquer."),
+    el("p", { class: "small" }, "La table de correspondance reste chiffrée sur le serveur, jamais envoyée au LLM."));
+
+  const inj = d.injection, g = el("div", { class: "gauge" });
+  const fill = el("i", { class: inj.score >= inj.seuil ? "hot" : "" }); fill.style.width = "0%";
+  const mark = el("u"); mark.style.left = (inj.seuil * 100) + "%";
+  const lbl = el("b", {}, `seuil ${String(inj.seuil).replace(".", ",")}`); lbl.style.left = (inj.seuil * 100) + "%";
+  g.append(fill, mark, lbl);
+  const raisons = el("ul", { class: "small", style: "margin:0;padding-left:18px" });
+  inj.raisons.forEach(x => raisons.append(el("li", {}, x)));
+  await etape(3, el("div", { class: "row" }, ""), g,
+    el("p", { class: "small" }, `Score du classifieur : ${String(inj.score).replace(".", ",")}`),
+    inj.raisons.length ? raisons : el("p", { class: "small" }, "Aucune règle déclenchée."));
+  $("#st-3 .row").append(pill(inj.suspect ? "escalade" : "ok", inj.suspect ? "Suspect" : "Sain"));
+  requestAnimationFrame(() => fill.style.width = Math.min(100, inj.score * 100) + "%");
+
+  if (d.action) {
+    const a = el("dl", { class: "kv" });
+    a.append(el("dt", {}, "Outil"), el("dd", {}, d.action.tool));
+    for (const [k, v] of Object.entries(d.action.params)) { const dd = el("dd"); dd.append(pseudos(String(v))); a.append(el("dt", {}, k), dd); }
+    a.append(el("dt", {}, "Confiance"), el("dd", {}, String(d.action.confidence).replace(".", ",")));
+    await etape(4, a, el("p", { class: "small" }, d.action.pourquoi));
+  } else await etape(4, el("p", {}, "Aucune action : le ticket se traite par une réponse."));
+
+  if (d.injection.suspect) await etape(5, el("p", {}, "Non vérifiée : le ticket est suspect, rien n'est envoyé."));
+  else if (d.resolution) {
+    const r = el("dl", { class: "kv" });
+    for (const [k, v] of Object.entries(d.resolution.params)) r.append(el("dt", {}, k), el("dd", {}, v == null ? "refusé" : String(v)));
+    await etape(5, d.resolution.refus ? el("p", { class: "err" }, d.resolution.refus) : el("p", { class: "small" }, "Pseudonymes remplacés par les vraies valeurs, par le code."), r);
+  } else await etape(5, el("p", { class: "small" }, "Pas de cible à vérifier."));
+
+  if (d.executor) {
+    const x = d.executor, kx = el("dl", { class: "kv" });
+    kx.append(el("dt", {}, "Niveau"), el("dd", {}, String(x.level)), el("dt", {}, "Raison"), el("dd", {}, x.reason),
+              el("dt", {}, "Audit"), el("dd", {}, x.audit_id));
+    if (x.result) kx.append(el("dt", {}, "Résultat"), el("dd", {}, JSON.stringify(x.result)));
+    const row = el("div", { class: "row" });
+    row.append(pill({ executed: "action", pending_approval: "attente" }[x.status] || "escalade", LABEL[x.status] || x.status));
+    await etape(6, row, kx);
+  } else await etape(6, el("p", {}, d.injection.suspect || (d.resolution && d.resolution.refus) ? "Jamais appelé : bloqué avant." : "Pas appelé : aucune action."));
+
+  const titres = { action: "Action exécutée", attente: "En attente d'un humain", escalade: "Escalade", reponse: "Réponse" };
+  const v = $("#verdict"); v.className = "verdict " + d.decision.type; v.hidden = false;
+  $("#v-titre").textContent = titres[d.decision.type] || d.decision.type; $("#v-texte").textContent = d.decision.texte;
+  $("#analyser").disabled = false;
 });
+
 chargerSuites();
+chargerExemples();
 </script>
 </body>
 </html>
