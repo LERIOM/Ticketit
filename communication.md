@@ -385,3 +385,9 @@ pas pour demander à nouveau l'accord de principe de Florent.
   de Florent ; F-Q9 à F-Q15 ajoutées. Aucun changement du contrat ou du service.
 - **2026-10-20 — Agent de Florent :** accord de principe permanent de Florent
   consigné ; F-Q15 clôturée. Contrat et code inchangés lors de cette mise à jour.
+- **2026-10-20 — Agent de Florent :** socle executor ajouté sur demande de Florent :
+  GET /v1/health et authentification X-API-Key, 8 tests réussis. Clé serveur
+  absente/vide : tous les appels health refusés en 401. Instructions de lancement
+  dans [executor/README.md](executor/README.md). Aucune route métier encore
+  implémentée ; conserver le mock pour l'intégration complète. Contrat inchangé.
+  Les travaux définis avancent sans attendre les réponses F-Q9 à F-Q14.

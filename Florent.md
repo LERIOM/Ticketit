@@ -33,7 +33,7 @@ Florent ne touche pas à : `engine/`, `ui/`, `mock_executor/`, `eval/`, `data/`.
 
 | Semaine | Objectif | État |
 | --- | --- | --- |
-| S1 | Contrat v1, squelette FastAPI, `/health` | Contrat validé techniquement ; accord fonctionnel en attente. Squelette non commencé |
+| S1 | Contrat v1, squelette FastAPI, `/health` | Socle health/auth réalisé, 8 tests réussis ; précisions du contrat encore ouvertes |
 | S2 | Labo simulé + `seed_lab.py` | Non commencé |
 | S4 | Outils niveau 0 et 1, `/tools`, `/execute` | Non commencé |
 | S5 | Autorisation, audit, approbations, annulation | Non commencé |
@@ -44,16 +44,17 @@ Florent ne touche pas à : `engine/`, `ui/`, `mock_executor/`, `eval/`, `data/`.
 Réponses détaillées dans [communication.md](communication.md).
 
 - **A-Q1** — Périmètre des prompts confirmé : executor uniquement côté Florent.
-- **A-Q2** — Outil inconnu : niveau 3, refused confirmé. Rejet et audit undo à valider ensemble.
+- **A-Q2** — Propositions d'Antoine acceptées par l'accord de principe de Florent ;
+  détails restant à préciser dans F-Q9 à F-Q14.
 - **A-Q3** — Structures proposées par Antoine reçues et consignées dans le canal commun ;
-  accord fonctionnel encore en attente.
+  acceptées côté Florent ; schémas incomplets suivis dans le canal commun.
 - **A-Q4** — Créneau à fournir par Florent ; aucun engagement de disponibilité pris par son agent.
 
 ## Demandes à Antoine
 
 Voir F-Q1 à F-Q8 dans [communication.md](communication.md).
 Réponses proposées reçues le 2026-10-20 ; questions complémentaires F-Q9 à F-Q14.
-F-Q15 demande l'accord fonctionnel de Florent, distinct de l'autorisation de transcription.
+F-Q15 est clôturée : accord de principe de Florent reçu.
 
 ## Journal
 
@@ -73,6 +74,8 @@ ne plus solliciter sa confirmation à chaque étape dans le périmètre demandé
 Cette consigne remplace les mentions historiques « accord de Florent en attente ».
 Elle ne fournit pas les détails absents et ne remplace pas l'accord d'Antoine
 sur une divergence ou le versionnement. Voir F-Q15 dans le canal commun.
+Florent demande également d'avancer dès qu'un travail suffisamment défini est
+possible, sans attendre les réponses qui concernent d'autres parties du service.
 
 À la demande de Florent, mettre à jour ce fichier après chaque ensemble de modifications
 terminé : avancement, vérifications, points ouverts et prochaine étape. Puis effectuer
@@ -104,3 +107,21 @@ Ne jamais présenter une proposition de l'agent comme un accord humain des deux 
   puis appliquer les règles suffisamment définies dans le périmètre autorisé.
   Cette mise à jour concerne uniquement la coordination ; contrôle
   `git diff --check`, commit et push.
+
+## Socle S1 réalisé — 2026-10-20
+
+- [executor/app/main.py](executor/app/main.py) : application FastAPI, route unique
+  GET /v1/health, réponse status ok/version 1.0, authentification X-API-Key.
+- Clé lue dans EXECUTOR_API_KEY lors de la création de l'application.
+  Clé serveur absente/vide ou clé cliente absente/vide/invalide : refus 401.
+  Comparaison constante avec secrets.compare_digest ; aucune clé de secours.
+- Documentation HTTP automatique désactivée pour ne pas ajouter de routes.
+- [Tests](executor/tests/test_health.py) : 8 réussis sous Python 3.14,
+  FastAPI 0.151.0, Pydantic 2.14.1. Un avertissement de dépréciation du
+  TestClient Starlette/httpx, sans échec. Python 3.11 non testé dans cet environnement.
+- [README executor](executor/README.md) : installation, lancement local sur 8100,
+  tests et limites du socle. Dépendances et exclusions locales ajoutées dans executor.
+- Contrat, modules d'Antoine et configuration Compose inchangés.
+  Le mock reste nécessaire à l'intégration des routes métier.
+- Prochaine étape : poursuivre les éléments définis du labo et du service ;
+  garder F-Q9 à F-Q14 visibles avant d'implémenter les comportements concernés.
