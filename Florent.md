@@ -34,7 +34,7 @@ Florent ne touche pas à : `engine/`, `ui/`, `mock_executor/`, `eval/`, `data/`.
 | Semaine | Objectif | État |
 | --- | --- | --- |
 | S1 | Contrat v1, squelette FastAPI, `/health` | Socle health/auth réalisé, 8 tests réussis ; précisions du contrat encore ouvertes |
-| S2 | Labo simulé + `seed_lab.py` | Non commencé |
+| S2 | Labo simulé + `seed_lab.py` | Stockage SQLite et seed du labo réalisés ; reset global audit/idempotence reste ouvert |
 | S4 | Outils niveau 0 et 1, `/tools`, `/execute` | Non commencé |
 | S5 | Autorisation, audit, approbations, annulation | Non commencé |
 | S6 | Intégration avec Antoine | Non commencé |
@@ -125,3 +125,23 @@ Ne jamais présenter une proposition de l'agent comme un accord humain des deux 
   Le mock reste nécessaire à l'intégration des routes métier.
 - Prochaine étape : poursuivre les éléments définis du labo et du service ;
   garder F-Q9 à F-Q14 visibles avant d'implémenter les comportements concernés.
+
+## Laboratoire S2 — 2026-10-20
+
+- Ajout du [stockage](executor/app/lab/storage.py), des
+  [fixtures déterministes](executor/app/lab/seed.py) et du
+  [script seed](executor/scripts/seed_lab.py).
+- Comptes et postes des scénarios communs, pare-feu initialement vide, 14 événements
+  exportables en JSONL. Dates fixes et états initiaux documentés comme choix
+  internes de démonstration, pas comme nouvelles règles de l'API.
+- Seed transactionnel limité aux tables lab_* ; aucune suppression d'audit ou
+  d'idempotence avant résolution de F-Q14. Pas encore de reset global du service.
+- 15 tests réussis (8 health + 7 labo) sous Python 3.14 : persistance,
+  reproductibilité, rollback, préservation des autres tables, export et CLI.
+  Avertissement TestClient/httpx déjà connu, sans échec.
+- [Dockerfile](executor/Dockerfile) ajouté, utilisateur non privilégié, port 8100.
+  Construction non testée : Docker indisponible. Aucun changement Compose.
+- Documentation et exclusions des fichiers locaux mises à jour ; contrôle
+  git diff --check avant commit/push.
+- Prochaine étape : relire les compléments d'Antoine et implémenter les outils
+  internes sur ce stockage, sans anticiper les règles non résolues.

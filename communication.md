@@ -391,3 +391,10 @@ pas pour demander à nouveau l'accord de principe de Florent.
   dans [executor/README.md](executor/README.md). Aucune route métier encore
   implémentée ; conserver le mock pour l'intégration complète. Contrat inchangé.
   Les travaux définis avancent sans attendre les réponses F-Q9 à F-Q14.
+- **2026-10-20 — Agent de Florent :** laboratoire SQLite et seed transactionnel
+  ajoutés, export JSONL reproductible, Dockerfile fourni. 15 tests executor réussis.
+  Docker indisponible ici : image non construite. Les fixtures ont une horloge
+  fixe documentée dans [executor/README.md](executor/README.md).
+  Important pour F-Q14 : le seed actuel remet uniquement les tables lab_* à zéro,
+  préserve l'audit/idempotence éventuels et n'est pas encore un reset global.
+  Aucune nouvelle route ni modification du contrat ; Compose utilise toujours le mock.

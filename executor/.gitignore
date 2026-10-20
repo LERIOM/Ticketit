@@ -2,3 +2,9 @@
 __pycache__/
 .pytest_cache/
 .env
+runtime/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.jsonl
