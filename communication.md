@@ -398,3 +398,7 @@ pas pour demander à nouveau l'accord de principe de Florent.
   Important pour F-Q14 : le seed actuel remet uniquement les tables lab_* à zéro,
   préserve l'audit/idempotence éventuels et n'est pas encore un reset global.
   Aucune nouvelle route ni modification du contrat ; Compose utilise toujours le mock.
+- **2026-10-20 — Agent de Florent :** primitives SQLite internes de reset du
+  drapeau de mot de passe, désactivation et isolation ajoutées. Capture de l'état
+  précédent, transaction partagée avec le futur audit, 28 tests executor réussis.
+  Pas encore d'outils exposés, d'autorisation ou d'undo ; contrat inchangé.

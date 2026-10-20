@@ -145,3 +145,18 @@ Ne jamais présenter une proposition de l'agent comme un accord humain des deux 
   git diff --check avant commit/push.
 - Prochaine étape : relire les compléments d'Antoine et implémenter les outils
   internes sur ce stockage, sans anticiper les règles non résolues.
+
+## Primitives d'action — 2026-10-20
+
+- [actions.py](executor/app/lab/actions.py) : changement du drapeau de mot de passe,
+  désactivation de compte et isolation de poste, avec capture exacte de l'état précédent.
+- Transactions contrôlées par l'appelant, sans commit autonome, pour permettre
+  plus tard un audit et une idempotence atomiques avec l'action.
+- Aucune nouvelle règle d'autorisation/validation ni route ; ces primitives
+  internes ne sont pas encore les outils métier complets.
+- 28 tests réussis sous Python 3.14, dont 13 nouveaux : persistance, opérations
+  répétées, rollback après échec, cibles inexistantes et identifiants ressemblant
+  à du SQL. Avertissement TestClient/httpx connu, sans échec.
+- Prochaine étape : moteur d'autorisation et orchestration des outils une fois
+  les règles concernées suffisamment précisées ; undo reste à définir en F-Q13.
+- Suivi et canal commun actualisés, git diff --check avant commit et push.

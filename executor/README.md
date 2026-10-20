@@ -85,3 +85,17 @@ Le serveur health n'initialise ni ne réinitialise automatiquement de base.
 Le Compose commun continue d'utiliser le mock jusqu'à l'intégration complète.
 Construction Docker non vérifiée dans l'environnement de développement actuel
 (Docker indisponible).
+
+## Opérations internes du labo
+
+[app/lab/actions.py](app/lab/actions.py) fournit force_password_reset,
+disable_account et isolate_host sur une connexion SQLite appartenant à l'appelant.
+Chaque opération capture la valeur précédente et applique la nouvelle valeur
+dans la même transaction, sans commit autonome. Une cible inexistante lève
+TargetNotFound sans créer d'actif. Les identifiants sont liés comme paramètres SQL.
+
+Ces primitives ne sont pas encore les outils exposés par l'API : elles ne
+prennent aucune décision d'autorisation, ne valident pas le contrat métier,
+ne créent pas d'audit et ne fournissent pas d'undo. Le futur orchestrateur devra
+les appeler uniquement après autorisation, puis écrire l'audit et l'idempotence
+dans la même transaction. Aucun endpoint supplémentaire n'est exposé.
