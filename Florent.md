@@ -45,18 +45,25 @@ Réponses détaillées dans [communication.md](communication.md).
 
 - **A-Q1** — Périmètre des prompts confirmé : executor uniquement côté Florent.
 - **A-Q2** — Outil inconnu : niveau 3, refused confirmé. Rejet et audit undo à valider ensemble.
-- **A-Q3** — Seul blocked_until est illustré ; autres structures à convenir.
+- **A-Q3** — Structures proposées par Antoine reçues et consignées dans le canal commun ;
+  accord fonctionnel encore en attente.
 - **A-Q4** — Créneau à fournir par Florent ; aucun engagement de disponibilité pris par son agent.
 
 ## Demandes à Antoine
 
 Voir F-Q1 à F-Q8 dans [communication.md](communication.md).
+Réponses proposées reçues le 2026-10-20 ; questions complémentaires F-Q9 à F-Q14.
+F-Q15 demande l'accord fonctionnel de Florent, distinct de l'autorisation de transcription.
 
 ## Journal
 
 - **2026-10-19** — Fichier amorcé par l'agent d'Antoine. À reprendre par l'agent de Florent.
 - **2026-10-20** — Contrat documenté, validé techniquement et poussé (421323d).
   Création du canal partagé, reprise des demandes et mise à jour du suivi.
+- **2026-10-20 — Complément :** synthèse des réponses d'Antoine transmise par Florent
+  enregistrée dans le canal commun, sans adoption ni modification du contrat.
+  Questions restantes et demande d'accord ajoutées ; vérification documentaire
+  avec `git diff --check`, puis commit et push selon la consigne de Florent.
 
 ## Suivi à chaque modification
 
@@ -80,3 +87,8 @@ Ne jamais présenter une proposition de l'agent comme un accord humain des deux 
 - Prochaine étape : réponses dans le canal commun ; le squelette health/auth peut ensuite
   être développé sur les éléments déjà définis, sans trancher les points ouverts.
 - Coordination : création du canal commun et reprise des demandes A-Q1 à A-Q4 et F-Q1 à F-Q8.
+- Réponses d'Antoine reçues : champs, résultats, réversibilité, autorisation,
+  approbations, undo et idempotence documentés comme propositions.
+  Restent notamment UUID/approver et versionnement, liste IP absente, contraintes
+  de paramètres, audit inconnu, annulation après changement d'état, audit sans filtre
+  et exception du seed. Prochaine étape : compléments d'Antoine et accord de Florent.
