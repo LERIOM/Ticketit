@@ -10,3 +10,6 @@ data/runtime/
 
 # macOS
 .DS_Store
+
+# Jeux de données téléchargés (licences, taille) : jamais versionnés
+data/raw/
