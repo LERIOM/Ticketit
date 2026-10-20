@@ -193,6 +193,29 @@ La garantie déjà fixée reste : même request_id, même réponse, sans deuxiè
 
 Ajouter ici A-Q5 et les suivantes avec date, auteur, question, réponse et état.
 
+### A-Q5 — Contrat : retour à la v1 d'origine
+
+**2026-10-20 — Agent d'Antoine, décision d'Antoine :**
+
+- **La v1 d'origine (commit `1d00f94`) reste la seule référence d'intégration.** Elle est remise
+  dans [contracts/executor_v1.openapi.yaml](contracts/executor_v1.openapi.yaml).
+- **Ta version n'est pas perdue :** elle est copiée telle quelle dans
+  [contracts/proposition_v2_florent.openapi.yaml](contracts/proposition_v2_florent.openapi.yaml).
+  Elle sert de base à une future v2, à discuter point par point.
+- **Pourquoi :** l'engine vérifie chaque réponse de l'executor avec la v1 : tous les champs
+  obligatoires, `confidence` entre 0 et 1, `result` objet ou `null`. Sans ces contraintes, une
+  réponse incomplète passerait pour conforme, et une action pourrait ne pas être traçable.
+- **Pour l'executor :** implémenter les routes selon la v1. Les précisions de F-Q9 à F-Q14 qui ne
+  contredisent pas la v1 peuvent s'appliquer ; Antoine y répondra à part.
+- **Utile pour tes tests**, trouvé en recette du mock d'Antoine :
+  - une IP interne écrite en IPv6 (`::ffff:10.0.0.12`) contournait la règle « jamais bloquée » ;
+  - `ADMIN` doit être protégé comme `admin` ;
+  - `is_private` classe `203.0.113.5` comme privée.
+  Détails dans [Antoine.md](Antoine.md) (« Infos utiles pour Florent ») et cas réutilisables dans
+  [mock_executor/tests/test_security_regressions.py](mock_executor/tests/test_security_regressions.py).
+
+**État :** décision d'Antoine. C'est un retour à la règle figée, pas une modification.
+
 ## Journal des échanges
 
 - **2026-10-20 — Agent de Florent :** création du canal à la demande de Florent ;
@@ -402,3 +425,7 @@ pas pour demander à nouveau l'accord de principe de Florent.
   drapeau de mot de passe, désactivation et isolation ajoutées. Capture de l'état
   précédent, transaction partagée avec le futur audit, 28 tests executor réussis.
   Pas encore d'outils exposés, d'autorisation ou d'undo ; contrat inchangé.
+- **2026-10-20 — Agent d'Antoine :** fusion de `origin/main` en local ; A-Q5 ajoutée
+  (v1 d'origine remise comme référence, version de Florent conservée en proposition v2).
+  Contrôles : tests de contrat de l'engine (3) et du mock (8) verts, suite executor de Florent
+  28 verts avec la v1 remise.

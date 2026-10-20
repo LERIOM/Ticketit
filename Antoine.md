@@ -210,3 +210,7 @@ docker compose up -d --build                           # tout lancer (engine :80
   **À corriger à l'étape 1** : le masquage avale la parenthèse dans « Jean Dupont (06 12… » →
   « <PERSONNE_1> <TEL_1>) » (le span téléphone de Presidio inclut « ( » ; réversible, mais à
   nettoyer : rogner la ponctuation en bord de span).
+- **2026-10-20** — Recette adversariale des blocs A et B par un agent testeur : 8 bugs, tous corrigés
+  (`1f7b5ab`). Travail de Florent fusionné (`f5cecff`). Contrat : retour à la v1 d'origine, version
+  de Florent gardée en `contracts/proposition_v2_florent.openapi.yaml` (A-Q5 dans `communication.md`).
+  Tableau de bord d'avancement (artifact privé « TicketIt avancement »).

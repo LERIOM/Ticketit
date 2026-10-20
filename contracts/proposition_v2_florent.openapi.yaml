@@ -1,0 +1,331 @@
+# CONTRAT D'INTERFACE v1, commun à Antoine (engine) et Florent (executor). FIGÉ.
+# Toute modification passe par un accord des deux et une v2.
+openapi: 3.0.3
+info:
+  title: executor
+  version: "1.0"
+  description: >
+    Module d'exécution sécurisée. L'agent propose des actions, ce service décide
+    et exécute. Un outil inconnu ou des paramètres invalides ne sont pas une
+    erreur HTTP : réponse 200 avec status "refused" et la raison.
+    Les décisions d'autorisation sont déterministes et ne dépendent jamais d'un
+    LLM. Les points non spécifiés sont recensés dans x-points-a-confirmer :
+    les schémas concernés restent volontairement partiels.
+x-sources:
+  - docs/prompt_florent_executeur.md
+  - docs/prompt_antoine_moteur.md
+x-points-a-confirmer:
+  - Les sections du contrat des deux prompts sont identiques.
+  - Les exemples JSON ne définissent pas explicitement les champs obligatoires
+    des requêtes execute et approvals, des réponses execute et du catalogue.
+    Aucun required n'est imposé sur ces objets en attendant validation commune.
+  - Les types, champs obligatoires et contraintes des paramètres des outils,
+    hors block_ip, restent à préciser ; seule la borne since_minutes <= 1440
+    est donnée. Les schémas documentaires ci-dessous sont donc partiels.
+  - Seul block_ip est explicitement réversible. La réversibilité des cinq
+    autres outils et les effets exacts de leur annulation restent à confirmer.
+  - Le contrat ne fixe pas les bornes de confidence dans l'API executor
+    (Antoine décrit une confiance entre 0 et 1 dans son moteur).
+  - Le contenu et la nullabilité de result selon le statut, ainsi que les
+    corps des erreurs 401 et 422, ne sont pas définis.
+  - Le caractère obligatoire de ticket_id dans la requête audit et le
+    comportement sans ce filtre restent à confirmer.
+  - Les cas audit_id inconnu, approbation répétée, rejet humain, annulation
+    répétée ou action non exécutée ne sont pas détaillés.
+  - L'idempotence garantit la même réponse pour le même request_id ;
+    sa durée de conservation, la concurrence et le traitement d'un contenu
+    différent sous le même identifiant ne sont pas détaillés.
+  - La priorité entre niveau 0 toujours exécuté et compte protégé toujours
+    en pending_approval doit être clarifiée pour account_info.
+  - La définition d'IP publique doit être conciliée avec les adresses de
+    documentation 203.0.113.5 et 198.51.100.23 du jeu d'intégration.
+  - Le traitement des champs supplémentaires et les formats des identifiants
+    hors request_id UUID v4 ne sont pas détaillés.
+servers:
+  - url: http://executor:8100/v1
+security:
+  - ApiKey: []
+
+paths:
+  /health:
+    get:
+      summary: État du service
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version]
+                properties:
+                  status: { type: string, enum: [ok] }
+                  version: { type: string, enum: ["1.0"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /tools:
+    get:
+      summary: Catalogue des outils
+      responses:
+        "200":
+          description: Liste des outils
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tool" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /execute:
+    post:
+      summary: Demande d'exécution d'une action (idempotente par request_id)
+      description: >
+        Un même request_id envoyé deux fois renvoie la même réponse sans
+        exécuter l'action une deuxième fois. La validation du schéma de la
+        requête donne 422 ; un outil inconnu ou des paramètres invalides
+        propres à l'outil donnent 200 avec status refused et une raison.
+        Les schémas de paramètres du catalogue ne sont donc pas appliqués
+        comme validation HTTP de params.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExecuteRequest" }
+      responses:
+        "200":
+          description: Toujours 200, même en cas de refus
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExecuteResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /approvals/{audit_id}:
+    post:
+      summary: Validation ou rejet humain d'une action en attente
+      parameters:
+        - { $ref: "#/components/parameters/AuditId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision: { type: string, enum: [approve, reject] }
+                approver: { type: string, example: analyste.dupont }
+      responses:
+        "200":
+          description: Nouveau statut de l'action
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExecuteResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /undo/{audit_id}:
+    post:
+      summary: Annule une action réversible déjà exécutée
+      description: status "executed" si l'annulation a réussi, "refused" si l'action n'est pas réversible.
+      parameters:
+        - { $ref: "#/components/parameters/AuditId" }
+      responses:
+        "200":
+          description: Résultat de l'annulation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExecuteResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /audit:
+    get:
+      summary: Entrées d'audit, de la plus récente à la plus ancienne
+      parameters:
+        - name: ticket_id
+          in: query
+          required: false
+          description: Filtre par ticket ; caractère obligatoire à confirmer.
+          schema: { type: string, example: T-123 }
+      responses:
+        "200":
+          description: Liste d'entrées
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AuditEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Valeur attendue lue dans EXECUTOR_API_KEY ; absente ou invalide, réponse 401.
+
+  parameters:
+    AuditId:
+      name: audit_id
+      in: path
+      required: true
+      schema: { type: string, example: A-000456 }
+
+  responses:
+    Unauthorized:
+      description: Clé API absente ou invalide
+    ValidationError:
+      description: Requête qui ne respecte pas le schéma
+
+  schemas:
+    Status:
+      type: string
+      enum: [executed, refused, pending_approval, failed]
+
+    Tool:
+      type: object
+      properties:
+        name: { type: string, example: block_ip }
+        level: { type: integer, minimum: 0, maximum: 3 }
+        description: { type: string }
+        params_schema: { type: object, description: JSON Schema des paramètres }
+        reversible: { type: boolean }
+
+    ExecuteRequest:
+      type: object
+      properties:
+        request_id: { type: string, format: uuid, description: UUID v4 ; clé d'idempotence. }
+        ticket_id: { type: string, example: T-123 }
+        tool: { type: string, example: block_ip }
+        params: { type: object, example: { ip: 203.0.113.5, duration_hours: 24 } }
+        confidence: { type: number, description: Bornes à confirmer pour le contrat executor. }
+        justification: { type: string }
+
+    ExecuteResponse:
+      type: object
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/Status" }
+        level: { type: integer, minimum: 0, maximum: 3 }
+        reason: { type: string }
+        audit_id: { type: string, example: A-000456 }
+        result:
+          description: Structure et nullabilité à confirmer pour chaque outil et statut.
+          example: { blocked_until: "2026-11-03T14:00:00Z" }
+        undo_available: { type: boolean }
+
+    AuditEntry:
+      type: object
+      required: [audit_id, timestamp, request_id, ticket_id, tool, params, confidence,
+                 justification, level, status, reason, approver, undo_of]
+      properties:
+        audit_id: { type: string }
+        timestamp: { type: string, format: date-time, description: Date ISO 8601 en UTC. }
+        request_id: { type: string }
+        ticket_id: { type: string }
+        tool: { type: string }
+        params: { type: object }
+        confidence: { type: number }
+        justification: { type: string }
+        level: { type: integer }
+        status: { $ref: "#/components/schemas/Status" }
+        reason: { type: string }
+        approver: { type: string, nullable: true }
+        undo_of: { type: string, nullable: true }
+
+x-tool-catalog:
+  description: >
+    Métadonnées documentaires, pas de nouveaux champs de l'API.
+    reversible null signifie non spécifié dans les prompts, pas une valeur
+    autorisée dans le catalogue HTTP. Les paramètres propres aux outils
+    sont validés métier et produisent 200 refused en cas d'invalidité.
+  tools:
+    - name: logs_search
+      level: 0
+      description: Recherche dans les logs du laboratoire.
+      authorization: Toujours exécuté.
+      reversible: null
+      params_schema:
+        type: object
+        properties:
+          query:
+            description: Type et contraintes à confirmer.
+          since_minutes:
+            maximum: 1440
+            description: Type, borne inférieure et caractère obligatoire à confirmer.
+    - name: account_info
+      level: 0
+      description: Informations sur un compte.
+      authorization: Toujours exécuté ; priorité de la règle des comptes protégés à confirmer.
+      reversible: null
+      params_schema:
+        type: object
+        properties:
+          username:
+            description: Type et contraintes à confirmer.
+    - name: block_ip
+      level: 1
+      description: Bloque une IP externe sur le pare-feu pour une durée limitée.
+      authorization: >
+        Exécuté si confiance >= seuil, IP publique et non protégée ;
+        sinon pending_approval. Seuil par défaut 0.80, réglable dans policy.yaml.
+        Une IP RFC 1918, de bouclage ou protégée n'est jamais bloquée automatiquement.
+      reversible: true
+      params_schema:
+        type: object
+        properties:
+          ip: { type: string }
+          duration_hours: { type: integer, minimum: 1, maximum: 24 }
+        required: [ip, duration_hours]
+    - name: force_password_reset
+      level: 1
+      description: Force le changement du mot de passe d'un compte.
+      authorization: >
+        Exécuté si confiance >= seuil et compte non protégé ;
+        sinon pending_approval. Seuil par défaut 0.80, réglable dans policy.yaml.
+      reversible: null
+      params_schema:
+        type: object
+        properties:
+          username:
+            description: Type et contraintes à confirmer.
+    - name: isolate_host
+      level: 2
+      description: Isole un poste.
+      authorization: Toujours pending_approval.
+      reversible: null
+      params_schema:
+        type: object
+        properties:
+          hostname:
+            description: Type et contraintes à confirmer.
+    - name: disable_account
+      level: 2
+      description: Désactive un compte.
+      authorization: Toujours pending_approval.
+      reversible: null
+      params_schema:
+        type: object
+        properties:
+          username:
+            description: Type et contraintes à confirmer.
+  other_tools:
+    level: 3
+    authorization: Toujours refused, HTTP 200, notamment delete_data et modify_firewall_policy.
+  protected_targets: >
+    Les comptes et postes protégés, par exemple admin, svc-backup et DC-01,
+    passent toujours en pending_approval. Priorité avec le niveau 0 à confirmer.
+
+# Tableau des niveaux (référence, appliqué par l'executor uniquement)
+#   logs_search (query, since_minutes <= 1440)  niveau 0  toujours exécuté
+#   account_info (username)                     niveau 0  toujours exécuté
+#   block_ip (ip, duration_hours 1..24)         niveau 1  exécuté si confiance >= seuil, IP publique non protégée ; sinon pending_approval
+#   force_password_reset (username)             niveau 1  exécuté si confiance >= seuil et compte non protégé ; sinon pending_approval
+#   isolate_host (hostname)                     niveau 2  toujours pending_approval
+#   disable_account (username)                  niveau 2  toujours pending_approval
+#   tout le reste                               niveau 3  toujours refused
+# Seuil niveau 1 par défaut : 0.80 (policy.yaml). IP RFC 1918, bouclage ou liste
+# protégée : jamais bloquée automatiquement. Comptes/postes protégés (admin,
+# svc-backup, DC-01) : toujours pending_approval.
