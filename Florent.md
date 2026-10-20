@@ -5,6 +5,9 @@
 > l'agent de Florent qui le met à jour.)
 > Le protocole de coordination commun est décrit en tête de [`Antoine.md`](Antoine.md) : chacun n'écrit
 > que dans son fichier, on lit les deux au début de chaque séance, le contrat v1 est figé.
+> À la demande de Florent (2026-10-20), les nouveaux échanges sont centralisés dans
+> [communication.md](communication.md), éditable par les deux participants.
+> Les fichiers personnels restent propres à leur auteur.
 
 ## Périmètre de Florent (rappel, cf. `docs/prompt_florent_executeur.md`)
 
@@ -30,25 +33,50 @@ Florent ne touche pas à : `engine/`, `ui/`, `mock_executor/`, `eval/`, `data/`.
 
 | Semaine | Objectif | État |
 | --- | --- | --- |
-| S1 | Contrat v1, squelette FastAPI, `/health` | _à renseigner par Florent_ |
-| S2 | Labo simulé + `seed_lab.py` | _à renseigner_ |
-| S4 | Outils niveau 0 et 1, `/tools`, `/execute` | _à renseigner_ |
-| S5 | Autorisation, audit, approbations, annulation | _à renseigner_ |
-| S6 | Intégration avec Antoine | _à renseigner_ |
+| S1 | Contrat v1, squelette FastAPI, `/health` | Contrat validé techniquement ; accord fonctionnel en attente. Squelette non commencé |
+| S2 | Labo simulé + `seed_lab.py` | Non commencé |
+| S4 | Outils niveau 0 et 1, `/tools`, `/execute` | Non commencé |
+| S5 | Autorisation, audit, approbations, annulation | Non commencé |
+| S6 | Intégration avec Antoine | Non commencé |
 
 ## Réponses à Antoine
 
-_(répondre ici aux demandes `A-Qn` de `Antoine.md`)_
+Réponses détaillées dans [communication.md](communication.md).
 
-- **A-Q1** — _à compléter_
-- **A-Q2** — _à compléter_
-- **A-Q3** — _à compléter_
-- **A-Q4** — _à compléter_
+- **A-Q1** — Périmètre des prompts confirmé : executor uniquement côté Florent.
+- **A-Q2** — Outil inconnu : niveau 3, refused confirmé. Rejet et audit undo à valider ensemble.
+- **A-Q3** — Seul blocked_until est illustré ; autres structures à convenir.
+- **A-Q4** — Créneau à fournir par Florent ; aucun engagement de disponibilité pris par son agent.
 
 ## Demandes à Antoine
 
-_(poser ici les questions `F-Qn`)_
+Voir F-Q1 à F-Q8 dans [communication.md](communication.md).
 
 ## Journal
 
 - **2026-10-19** — Fichier amorcé par l'agent d'Antoine. À reprendre par l'agent de Florent.
+- **2026-10-20** — Contrat documenté, validé techniquement et poussé (421323d).
+  Création du canal partagé, reprise des demandes et mise à jour du suivi.
+
+## Suivi à chaque modification
+
+À la demande de Florent, mettre à jour ce fichier après chaque ensemble de modifications
+terminé : avancement, vérifications, points ouverts et prochaine étape. Puis effectuer
+un commit et un push sans redemander confirmation, dans le cadre des permissions disponibles.
+Lire également [Antoine.md](Antoine.md) et [communication.md](communication.md) au début du travail.
+Ne jamais présenter une proposition de l'agent comme un accord humain des deux participants.
+
+## Bilan du 2026-10-20
+
+- Seul le contrat a été modifié avant cette mise à jour de coordination ; aucun service executor,
+  laboratoire ou test ajouté.
+- Sources trouvées dans `docs/`, pas `upload/` ; sections du contrat strictement identiques.
+- YAML validé avec PyYAML 6.0.3 ; OpenAPI 3.0.3 validé avec openapi-spec-validator 0.9.0
+  dans un environnement temporaire, sans ajout de dépendances au dépôt.
+- Contrat poussé dans le commit `421323d` ; il reste une proposition à valider fonctionnellement.
+  Attention : les listes required et les bornes de confidence de la version initiale ont été
+  retirées en attendant clarification. Ces changements de validation doivent être revus avec
+  Antoine et ne constituent pas un accord commun ni une version d'intégration approuvée.
+- Prochaine étape : réponses dans le canal commun ; le squelette health/auth peut ensuite
+  être développé sur les éléments déjà définis, sans trancher les points ouverts.
+- Coordination : création du canal commun et reprise des demandes A-Q1 à A-Q4 et F-Q1 à F-Q8.
