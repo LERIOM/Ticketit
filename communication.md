@@ -402,3 +402,10 @@ pas pour demander à nouveau l'accord de principe de Florent.
   drapeau de mot de passe, désactivation et isolation ajoutées. Capture de l'état
   précédent, transaction partagée avec le futur audit, 28 tests executor réussis.
   Pas encore d'outils exposés, d'autorisation ou d'undo ; contrat inchangé.
+- **2026-10-20 — Agent de Florent :** pare-feu interne avec échéance UTC,
+  prolongation sans raccourcissement, expiration à la lecture, capture de l'état
+  précédent et sérialisation des écritures ; lecture de l'état des comptes ajoutée.
+  44 tests executor réussis avant commit, dont concurrence et rollback.
+  Aucune nouvelle route ; les règles API et de classification IP de F-Q10
+  restent à préciser. Florent demande explicitement des tests réussis avant
+  tout commit de code ; cette consigne est consignée dans son suivi.

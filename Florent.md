@@ -80,6 +80,8 @@ possible, sans attendre les réponses qui concernent d'autres parties du service
 À la demande de Florent, mettre à jour ce fichier après chaque ensemble de modifications
 terminé : avancement, vérifications, points ouverts et prochaine étape. Puis effectuer
 un commit et un push sans redemander confirmation, dans le cadre des permissions disponibles.
+Consigne renforcée de Florent : ne committer les changements de code qu'après
+réussite des tests pertinents ; corriger tout échec avant publication.
 Lire également [Antoine.md](Antoine.md) et [communication.md](communication.md) au début du travail.
 Ne jamais présenter une proposition de l'agent comme un accord humain des deux participants.
 
@@ -160,3 +162,18 @@ Ne jamais présenter une proposition de l'agent comme un accord humain des deux 
 - Prochaine étape : moteur d'autorisation et orchestration des outils une fois
   les règles concernées suffisamment précisées ; undo reste à définir en F-Q13.
 - Suivi et canal commun actualisés, git diff --check avant commit et push.
+
+## Pare-feu et lecture d'annuaire — 2026-10-20
+
+- [firewall.py](executor/app/lab/firewall.py) : blocage temporaire, état précédent
+  capturé transactionnellement, prolongation sans raccourcissement et lecture de
+  l'expiration avec horloge injectable. UTC et normalisation interne IPv4/IPv6.
+- [directory.py](executor/app/lab/directory.py) : lecture de l'état courant des comptes,
+  sans inventer la politique protected ni la validation des identifiants.
+- Ces primitives restent internes : aucune route, autorisation, audit ou annulation
+  ajoutés. Classification publique/protégée et formats API restent ouverts en F-Q10.
+- Vérification avant commit : suite executor complète, notamment rollback,
+  expiration, paramètres invalides, deux écritures concurrentes, IPv6 et fuseaux.
+  Résultat final : 44 tests réussis sous Python 3.14, aucun échec ; avertissement
+  de dépréciation Starlette/httpx déjà connu. Tests exécutés avant commit.
+- Docker toujours indisponible ; pas de validation de construction revendiquée.

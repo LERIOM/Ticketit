@@ -99,3 +99,12 @@ prennent aucune décision d'autorisation, ne valident pas le contrat métier,
 ne créent pas d'audit et ne fournissent pas d'undo. Le futur orchestrateur devra
 les appeler uniquement après autorisation, puis écrire l'audit et l'idempotence
 dans la même transaction. Aucun endpoint supplémentaire n'est exposé.
+
+Le [pare-feu interne](app/lab/firewall.py) stocke les échéances en UTC et prend
+une horloge explicite pour les tests. Un nouveau blocage ne raccourcit jamais
+une échéance existante ; les écritures concurrentes sont sérialisées par SQLite.
+L'expiration est évaluée à la lecture, sans effacer la valeur précédente.
+IPv4/IPv6 sont normalisées par le stockage ; cela ne définit pas encore leur
+admissibilité dans l'API ni leur caractère public/protégé (F-Q10).
+La [lecture d'annuaire](app/lab/directory.py) renvoie uniquement l'état enregistré ;
+le champ protected du futur outil account_info devra provenir de la politique.
