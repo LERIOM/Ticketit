@@ -4,12 +4,17 @@ Mêmes routes, même format de réponse et même idempotence que le vrai module 
 Florent, avec une version simplifiée du tableau des niveaux. L'engine choisit
 entre le faux et le vrai uniquement par EXECUTOR_URL.
 """
+import math
 import os
+import secrets
 import time
 import uuid
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from . import catalog
@@ -21,11 +26,29 @@ EXECUTE_DELAY_S = float(os.environ.get("MOCK_EXECUTE_DELAY_S", "0"))
 
 
 def check_key(x_api_key: str | None = Header(default=None)) -> None:
-    if x_api_key != API_KEY:
+    if not x_api_key or not secrets.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=401, detail="invalid api key")
 
 
-app = FastAPI(title="mock executor", version="1.0", dependencies=[Depends(check_key)])
+# Pas de /docs ni /openapi.json publics : seules les routes du contrat existent.
+app = FastAPI(title="mock executor", version="1.0", dependencies=[Depends(check_key)],
+              docs_url=None, redoc_url=None, openapi_url=None)
+
+
+def _finite(o: Any) -> Any:
+    if isinstance(o, float) and not math.isfinite(o):
+        return str(o)
+    if isinstance(o, dict):
+        return {k: _finite(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_finite(v) for v in o]
+    return o
+
+
+@app.exception_handler(RequestValidationError)
+async def _invalid_request(_: Request, exc: RequestValidationError) -> JSONResponse:
+    """422 propre même si l'entrée contient NaN / Infinity (sinon erreur 500)."""
+    return JSONResponse(status_code=422, content={"detail": _finite(jsonable_encoder(exc.errors()))})
 
 
 # ----------------------------------------------------------------- schémas
@@ -35,13 +58,16 @@ class ExecuteRequest(BaseModel):
     ticket_id: str
     tool: str
     params: dict[str, Any]
-    confidence: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1, allow_inf_nan=False)
     justification: str
 
     @field_validator("request_id")
     @classmethod
     def _uuid(cls, v: str) -> str:
-        uuid.UUID(v)
+        # Forme canonique exigée : sinon le même UUID écrit en majuscules ou sans
+        # tirets passerait l'idempotence et l'action serait exécutée plusieurs fois.
+        if v != str(uuid.UUID(v)):
+            raise ValueError("request_id doit être un UUID canonique (minuscules, avec tirets)")
         return v
 
 
@@ -110,7 +136,7 @@ def _decide(req: ExecuteRequest) -> tuple[int, Status, str]:
     th = catalog.L1_THRESHOLD
     if req.tool == "block_ip" and not catalog.ip_auto_blockable(req.params["ip"]):
         return 1, "pending_approval", "Niveau 1, IP privée, de bouclage ou protégée : validation humaine"
-    if req.tool == "force_password_reset" and req.params["username"] in catalog.PROTECTED_ACCOUNTS:
+    if req.tool == "force_password_reset" and req.params["username"].casefold() in catalog.PROTECTED_ACCOUNTS:
         return 1, "pending_approval", "Niveau 1, compte protégé : validation humaine"
     if req.confidence < th:
         return 1, "pending_approval", f"Niveau 1, confiance {req.confidence:.2f} < {th:.2f}"

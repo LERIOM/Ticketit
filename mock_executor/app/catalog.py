@@ -78,6 +78,8 @@ def validate_params(tool: dict[str, Any], params: dict[str, Any]) -> str | None:
             ipaddress.ip_address(params["ip"])
         except ValueError:
             return f"ip invalide : {params['ip']!r} (une seule adresse, pas de plage)"
+        if "%" in params["ip"]:
+            return f"ip invalide : {params['ip']!r} (zone IPv6 interdite)"
     for key in ("username", "hostname"):
         if key in params and not params[key].replace("-", "").replace(".", "").replace("_", "").isalnum():
             return f"{key} contient des caractères interdits"
@@ -87,16 +89,39 @@ def validate_params(tool: dict[str, Any], params: dict[str, Any]) -> str | None:
 # Liste explicite : ipaddress.is_private/is_global classent aussi les plages de
 # documentation (203.0.113.0/24, 198.51.100.0/24) comme privées, or ce sont les
 # IP « publiques » du jeu d'intégration commun.
-_NEVER_AUTO_BLOCK = [ipaddress.ip_network(n) for n in (
+_NEVER_AUTO_BLOCK_V4 = [ipaddress.ip_network(n) for n in (
     "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",   # RFC 1918
-    "127.0.0.0/8", "::1/128",                          # bouclage
-    "0.0.0.0/8", "169.254.0.0/16", "224.0.0.0/4", "255.255.255.255/32",
-    "fc00::/7", "fe80::/10",
+    "127.0.0.0/8",                                     # bouclage
+    "0.0.0.0/8", "169.254.0.0/16", "224.0.0.0/4", "240.0.0.0/4",
+    "100.64.0.0/10", "192.0.0.0/24", "198.18.0.0/15",  # CGNAT, IETF, tests de perf
 )]
+_DOC_V6 = ipaddress.ip_network("2001:db8::/32")
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+_PROTECTED = {ipaddress.ip_address(ip) for ip in PROTECTED_IPS}
+
+
+def _as_ipv4(addr: ipaddress.IPv4Address | ipaddress.IPv6Address):
+    """Ramène les IPv6 qui « contiennent » une IPv4 à cette IPv4 (sinon contournement :
+    ::ffff:10.0.0.12 désigne 10.0.0.12)."""
+    if addr.version == 4:
+        return addr
+    if addr.ipv4_mapped:
+        return addr.ipv4_mapped
+    if addr.sixtofour:
+        return addr.sixtofour
+    if addr in _NAT64 or int(addr) >> 32 == 0:      # NAT64, ::a.b.c.d, :: et ::1
+        return ipaddress.IPv4Address(int(addr) & 0xFFFFFFFF)
+    return addr
 
 
 def ip_auto_blockable(ip: str) -> bool:
-    addr = ipaddress.ip_address(ip)
-    if any(addr.version == n.version and addr in n for n in _NEVER_AUTO_BLOCK):
+    addr = _as_ipv4(ipaddress.ip_address(ip))
+    if addr in _PROTECTED:
         return False
-    return ip not in PROTECTED_IPS
+    if addr.version == 4:
+        return not any(addr in n for n in _NEVER_AUTO_BLOCK_V4)
+    if addr in _DOC_V6:
+        return True
+    # is_global seul ne suffit pas (Python 3.11 : ff02::1 et fec0::1 sont « globales »)
+    return addr.is_global and not (addr.is_multicast or addr.is_site_local
+                                   or addr.is_link_local or addr.is_reserved)

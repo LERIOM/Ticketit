@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from app.executor_client import (
-    ExecutorClient, ExecutorProtocolError, ExecutorUnavailable,
+    ExecutorClient, ExecutorProtocolError, ExecutorUnavailable, InvalidRequest,
 )
 from app.models import ExecuteRequest
 
@@ -112,7 +112,7 @@ def test_mock_catalog(real):
     assert {t.name for t in client.list_tools()} == {
         "logs_search", "account_info", "block_ip", "force_password_reset",
         "isolate_host", "disable_account"}
-    assert client.health()["status"] == "ok"
+    assert client.health().status == "ok"
 
 
 def test_idempotence_against_mock(real):
@@ -146,3 +146,79 @@ def test_wrong_key_against_mock(mock_executor):
     http, _ = mock_executor
     with pytest.raises(ExecutorProtocolError):
         ExecutorClient(api_key="mauvaise", http=http).list_tools()
+
+
+# ------------------------------------- régressions de la recette du 2026-10-20
+
+@pytest.mark.parametrize("audit_id", ["x/../../undo/A-000001", "A-1?x=1", "A-1#x", "", "A-1%2F"])
+def test_trapped_audit_id_never_sent(audit_id):
+    client, calls = scripted(_resp("executed"))
+    with pytest.raises(InvalidRequest):
+        client.decide_approval(audit_id, "reject", "analyste")
+    with pytest.raises(InvalidRequest):
+        client.undo(audit_id)
+    assert calls == []
+
+
+def test_trapped_audit_id_cannot_undo_against_mock(real):
+    client, state = real
+    r = client.execute(REQ)
+    with pytest.raises(InvalidRequest):
+        client.decide_approval(f"x/../../undo/{r.audit_id}", "reject", "pirate")
+    assert "203.0.113.5" in state.blocked_ips          # toujours bloquée
+
+
+def test_corrupted_body_is_retried_then_unavailable():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"},
+                              stream=httpx.ByteStream(b"pas du gzip"))
+
+    http = httpx.Client(base_url="http://executor:8100", transport=httpx.MockTransport(handler))
+    with pytest.raises(ExecutorUnavailable):
+        ExecutorClient(api_key="k", http=http).execute(REQ)
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("body", [{"status": "down", "version": "1.0"}, [], "ok"])
+def test_health_is_validated(body):
+    client, _ = scripted(body)
+    with pytest.raises(ExecutorProtocolError):
+        client.health()
+
+
+def test_empty_ticket_id_still_filters():
+    client, calls = scripted([])
+    client.audit("")
+    assert calls[0].url.params.get("ticket_id") == ""
+
+
+def test_level_out_of_contract_rejected():
+    client, _ = scripted(_resp("executed", level=9))
+    with pytest.raises(ExecutorProtocolError):
+        client.execute(REQ)
+
+
+def test_base_url_with_v1_suffix():
+    assert str(ExecutorClient(base_url="http://executor:8100/v1/")._http.base_url) == "http://executor:8100"
+
+
+class _Trickle(httpx.SyncByteStream):
+    """Serveur qui envoie la réponse octet par octet, lentement."""
+    def __iter__(self):
+        import time
+        for _ in range(40):
+            time.sleep(0.05)
+            yield b" "
+
+
+def test_global_deadline_per_attempt():
+    import time
+    http = httpx.Client(base_url="http://x", transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, stream=_Trickle())))
+    start = time.monotonic()
+    with pytest.raises(ExecutorUnavailable, match="délai"):
+        ExecutorClient(api_key="k", timeout_s=0.3, http=http).execute(REQ)
+    assert time.monotonic() - start < 1.5              # 2 tentatives × 0,3 s (+ marge)

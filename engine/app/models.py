@@ -157,10 +157,15 @@ class ExecuteRequest(BaseModel):
     justification: str
 
 
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
+    version: str
+
+
 class ExecuteResponse(BaseModel):
     request_id: str
     status: ExecStatus
-    level: int
+    level: int = Field(ge=0, le=3)
     reason: str
     audit_id: str
     result: dict[str, Any] | None

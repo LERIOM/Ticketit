@@ -139,6 +139,13 @@ Notes de conception déjà arrêtées :
   le moteur d'autorisation utilise `is_private`/`is_global`, les scénarios `ssh_bruteforce` et
   `port_scan` finiront en `pending_approval` au lieu de `executed`. Tester explicitement les
   réseaux RFC 1918 + bouclage (voir `mock_executor/app/catalog.py`, `_NEVER_AUTO_BLOCK`).
+- ⚠️ **Contournement IPv6** (trouvé en recette le 2026-10-20, corrigé dans le mock) : une IP interne
+  écrite en IPv6 « IPv4-mappée » (`::ffff:10.0.0.12`, `::ffff:127.0.0.1`), NAT64 (`64:ff9b::a00:1`) ou
+  6to4 (`2002:0a00:0001::`) passait la règle « jamais bloquée automatiquement ». Ramener l'adresse à son
+  IPv4 avant de vérifier (voir `_as_ipv4` dans `mock_executor/app/catalog.py`). Attention aussi :
+  en Python 3.11, `ff02::1` et `fec0::1` sont `is_global`.
+- ⚠️ **Casse des comptes protégés** : `ADMIN` doit être protégé comme `admin` (comparer en `casefold()`).
+- Tests de non-régression réutilisables : `mock_executor/tests/test_security_regressions.py`.
 - Le `mock_executor` suit le contrat v1 ; son test de conformité peut servir de modèle pour le
   test « le contrat correspond aux routes exposées » demandé dans le prompt de Florent.
 
