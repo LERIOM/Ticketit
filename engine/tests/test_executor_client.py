@@ -104,7 +104,9 @@ def test_approvals_and_undo_are_never_replayed():
 @pytest.fixture
 def real(mock_executor):
     http, state = mock_executor
-    return ExecutorClient(api_key="change-me", http=http), state
+    from tests.conftest import _load_mock_executor
+    main, _ = _load_mock_executor()
+    return ExecutorClient(api_key=main.API_KEY, http=http), state
 
 
 def test_mock_catalog(real):
